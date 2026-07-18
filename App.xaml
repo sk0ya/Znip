@@ -37,7 +37,7 @@
 
         <!-- ================= ボタン ================= -->
         <Style x:Key="ToolButton" TargetType="Button">
-            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Padding" Value="14,2"/>
             <Setter Property="Margin" Value="0,0,8,0"/>
             <Setter Property="Background" Value="{StaticResource CardBg}"/>
             <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
@@ -176,7 +176,7 @@
 
         <!-- ================= 入力欄 ================= -->
         <Style x:Key="InputBox" TargetType="TextBox">
-            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="Padding" Value="10,2"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Background" Value="{StaticResource CardBg}"/>
