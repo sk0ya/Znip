@@ -15,6 +15,8 @@ public partial class PickerWindow : Window
     private readonly SnippetStore _store;
     private readonly IntPtr _targetWindow;
     private bool _committing;
+    private bool _closing;
+    private bool _activatedOnce;
 
     public PickerWindow(SnippetStore store, IntPtr targetWindow)
     {
@@ -23,6 +25,7 @@ public partial class PickerWindow : Window
         _targetWindow = targetWindow;
         RefreshList();
         SourceInitialized += (_, _) => PositionNearCursor();
+        Activated += (_, _) => _activatedOnce = true;
         Loaded += (_, _) =>
         {
             // ホットキー発火元が別プロセスでもフォーカスを確実に奪う
@@ -31,6 +34,14 @@ public partial class PickerWindow : Window
             Activate();
             SearchBox.Focus();
         };
+    }
+
+    /// <summary>Close() の再入(Deactivated 連鎖など)によるクラッシュを防ぐ</summary>
+    private void CloseSafely()
+    {
+        if (_closing) return;
+        _closing = true;
+        Close();
     }
 
     private void PositionNearCursor()
@@ -102,7 +113,7 @@ public partial class PickerWindow : Window
         switch (e.Key)
         {
             case Key.Escape:
-                Close();
+                CloseSafely();
                 e.Handled = true;
                 break;
             case Key.Down:
@@ -159,14 +170,16 @@ public partial class PickerWindow : Window
         }
         finally
         {
-            Close();
+            CloseSafely();
         }
     }
 
     private void Window_Deactivated(object? sender, EventArgs e)
     {
-        // 貼り付けのために自らフォーカスを手放した場合は閉じない(Commit 側で閉じる)
-        if (!_committing)
-            Close();
+        // 貼り付けのために自らフォーカスを手放した場合は閉じない(Commit 側で閉じる)。
+        // ForceForeground によるウィンドウ表示直後は、まだ一度も Activated していない
+        // 状態で見かけ上の Deactivated が飛んでくることがあるため無視する。
+        if (!_committing && _activatedOnce)
+            CloseSafely();
     }
 }
