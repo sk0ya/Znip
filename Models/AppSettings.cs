@@ -17,6 +17,9 @@ public class AppSettings
     /// <summary>Windows起動時に自動で起動するか</summary>
     public bool LaunchAtStartup { get; set; } = false;
 
+    /// <summary>起動時のBeefText移行確認を表示済みか(一度だけ確認する)</summary>
+    public bool BeefTextImportPrompted { get; set; } = false;
+
     public string HotkeyDisplayText()
     {
         var parts = new List<string>();

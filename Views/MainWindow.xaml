@@ -278,6 +278,15 @@
 
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
+                            <TextBlock Text="BeefTextからの移行" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Foreground="{StaticResource TextSub}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                                       Text="BeefText の comboList.json を指定して、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。&#x0a;キーワードが重複するスニペットはスキップされます。"/>
+                            <Button Content="ファイルを選んでインポート..." Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Click="ImportBeefText_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
+                        <StackPanel>
                             <TextBlock Text="データ" Style="{StaticResource SectionTitle}"/>
                             <TextBlock x:Name="DataPathText" Foreground="{StaticResource TextSub}" FontSize="12" Margin="0,0,0,10"/>
                             <Button Content="データフォルダを開く" Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Click="OpenDataFolder_Click"/>

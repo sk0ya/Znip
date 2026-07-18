@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Znip.Services;
 using Znip.Views;
 using WinForms = System.Windows.Forms;
@@ -40,6 +41,12 @@ public partial class App : System.Windows.Application
 
         Store.Load();
 
+        if (!Store.Settings.BeefTextImportPrompted)
+        {
+            Store.Settings.BeefTextImportPrompted = true;
+            OfferBeefTextImport();
+        }
+
         Hotkeys = new HotkeyManager();
         Hotkeys.HotkeyPressed += ShowPicker;
         RegisterHotkeyFromSettings();
@@ -53,6 +60,58 @@ public partial class App : System.Windows.Application
 
         // トレイ常駐アプリだが、手動起動時は設定画面を表示するのが親切
         ShowSettings();
+    }
+
+    private void OfferBeefTextImport()
+    {
+        var path = BeefTextImporter.FindComboListPath();
+        if (path == null) return;
+
+        var result = MessageBox.Show(
+            "BeefText のスニペットと設定が見つかりました。Znip に取り込みますか?\n" +
+            "(キーワードが重複するスニペットはスキップされます。設定画面からも後で取り込めます。)",
+            "Znip — BeefTextからの移行", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (result != MessageBoxResult.Yes) return;
+
+        ImportFromBeefText(path);
+    }
+
+    /// <summary>BeefText の comboList.json からスニペットと設定を取り込み、結果をメッセージで表示する。</summary>
+    public void ImportFromBeefText(string comboListPath)
+    {
+        BeefTextImporter.ImportResult imported;
+        try { imported = BeefTextImporter.Import(comboListPath); }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"BeefTextのデータを読み込めませんでした。\n{ex.Message}", "Znip",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        int added = 0, skipped = 0;
+        foreach (var combo in imported.Combos)
+        {
+            if (Store.Items.Any(s => s.Keyword == combo.Keyword)) { skipped++; continue; }
+            Store.Items.Add(new Models.Snippet { Keyword = combo.Keyword, Label = combo.Name, Content = combo.Snippet });
+            added++;
+        }
+
+        var s = Store.Settings;
+        if (imported.AutoExpandEnabled is bool autoExpand) s.AutoExpandEnabled = autoExpand;
+        if (imported.HotkeyModifiers is ModifierKeys mods && imported.HotkeyKey is Key key)
+        {
+            s.HotkeyModifiers = mods;
+            s.HotkeyKey = key;
+        }
+        if (imported.LaunchAtStartup is true)
+        {
+            try { StartupManager.SetEnabled(true); s.LaunchAtStartup = true; }
+            catch { /* スタートアップ登録の失敗は無視し、設定画面から再設定できる */ }
+        }
+        Store.ScheduleSave();
+
+        MessageBox.Show($"スニペット {added} 件を取り込みました。(重複のためスキップ: {skipped} 件)",
+            "Znip", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void RegisterHotkeyFromSettings()

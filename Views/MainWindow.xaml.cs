@@ -221,6 +221,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ImportBeefText_Click(object sender, RoutedEventArgs e)
+    {
+        var beeftextDefaultDir = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "beeftext.org", "Beeftext");
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "BeefText の comboList.json を選択",
+            Filter = "BeefText コンボリスト (comboList.json)|comboList.json|JSON ファイル (*.json)|*.json|すべてのファイル (*.*)|*.*",
+            InitialDirectory = System.IO.Directory.Exists(beeftextDefaultDir) ? beeftextDefaultDir : "",
+        };
+        if (dialog.ShowDialog(this) != true) return;
+
+        App.Current.ImportFromBeefText(dialog.FileName);
+
+        // 取り込んだ設定を画面に反映
+        var s = Store.Settings;
+        HotkeyBox.Text = s.HotkeyDisplayText();
+        HotkeyHintText.Text = s.HotkeyDisplayText();
+        AutoExpandCheck.IsChecked = s.AutoExpandEnabled;
+        StartupCheck.IsChecked = StartupManager.IsEnabled();
+    }
+
     private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
     {
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
