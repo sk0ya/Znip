@@ -13,12 +13,17 @@
     <Product>Znip</Product>
     <Version>1.0.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Znip.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- WPF の型と衝突するため WinForms の暗黙 using を外す(使用箇所は完全修飾) -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Znip.ico" />
   </ItemGroup>
 
 </Project>

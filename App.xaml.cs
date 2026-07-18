@@ -171,21 +171,11 @@ public partial class App : System.Windows.Application
         _notifyIcon.DoubleClick += (_, _) => Dispatcher.Invoke(ShowSettings);
     }
 
-    /// <summary>アイコンファイル不要の簡易アイコン("Z" を描画)</summary>
+    /// <summary>実行ファイル(.exe)に埋め込まれた Znip.ico をトレイアイコンとして使う</summary>
     private static Drawing.Icon CreateAppIcon()
     {
-        using var bmp = new Drawing.Bitmap(32, 32);
-        using (var g = Drawing.Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode = Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            g.TextRenderingHint = Drawing.Text.TextRenderingHint.AntiAlias;
-            using var bg = new Drawing.SolidBrush(Drawing.Color.FromArgb(79, 109, 245));
-            g.FillEllipse(bg, 0, 0, 31, 31);
-            using var font = new Drawing.Font("Segoe UI", 16, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Pixel);
-            var size = g.MeasureString("Z", font);
-            g.DrawString("Z", font, Drawing.Brushes.White, (32 - size.Width) / 2f, (32 - size.Height) / 2f);
-        }
-        return Drawing.Icon.FromHandle(bmp.GetHicon());
+        var exePath = Environment.ProcessPath!;
+        return Drawing.Icon.ExtractAssociatedIcon(exePath)!;
     }
 
     private void WatchShowEvent()
