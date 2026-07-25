@@ -23,11 +23,19 @@ public static class BeefTextImporter
         public string Name { get; set; } = "";
         public string Snippet { get; set; } = "";
         public bool Enabled { get; set; } = true;
+        public string GroupUuid { get; set; } = "";
+    }
+
+    public class ImportedGroup
+    {
+        public string Uuid { get; set; } = "";
+        public string Name { get; set; } = "";
     }
 
     public class ImportResult
     {
         public List<ImportedCombo> Combos { get; } = new();
+        public List<ImportedGroup> Groups { get; } = new();
         public bool? AutoExpandEnabled { get; set; }
         public bool? LaunchAtStartup { get; set; }
         public ModifierKeys? HotkeyModifiers { get; set; }
@@ -72,9 +80,20 @@ public static class BeefTextImporter
                         Name = GetString(c, "name"),
                         Snippet = ConvertVariableSyntax(GetString(c, "snippet")),
                         Enabled = GetBool(c, "enabled", true),
+                        GroupUuid = GetString(c, "group"),
                     };
                     if (!string.IsNullOrWhiteSpace(combo.Keyword) && combo.Enabled)
                         result.Combos.Add(combo);
+                }
+            }
+
+            if (doc.RootElement.TryGetProperty("groups", out var groupsEl) && groupsEl.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var g in groupsEl.EnumerateArray())
+                {
+                    var uuid = GetString(g, "uuid");
+                    if (string.IsNullOrWhiteSpace(uuid)) continue;
+                    result.Groups.Add(new ImportedGroup { Uuid = uuid, Name = GetString(g, "name") });
                 }
             }
         }

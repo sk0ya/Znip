@@ -8,8 +8,16 @@ public class Snippet : INotifyPropertyChanged
     private string _keyword = "";
     private string _label = "";
     private string _content = "";
+    private Guid? _groupId;
 
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    /// <summary>所属グループのId(nullなら未分類)</summary>
+    public Guid? GroupId
+    {
+        get => _groupId;
+        set { if (_groupId != value) { _groupId = value; OnPropertyChanged(nameof(GroupId)); } }
+    }
 
     /// <summary>入力すると展開されるキーワード(例: ";addr")</summary>
     public string Keyword

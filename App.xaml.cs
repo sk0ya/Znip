@@ -89,11 +89,33 @@ public partial class App : System.Windows.Application
         }
 
         int added = 0, skipped = 0;
+        var groupIdMap = new Dictionary<string, Guid>(); // BeefText の group uuid -> Znip の GroupId(実際に使われたものだけ変換)
+        var addedSnippets = new List<(Models.Snippet Snippet, string GroupUuid)>();
+
         foreach (var combo in imported.Combos)
         {
             if (Store.Items.Any(s => s.Keyword == combo.Keyword)) { skipped++; continue; }
-            Store.Items.Add(new Models.Snippet { Keyword = combo.Keyword, Label = combo.Name, Content = combo.Snippet });
+            var snippet = new Models.Snippet { Keyword = combo.Keyword, Label = combo.Name, Content = combo.Snippet };
+            Store.Items.Add(snippet);
+            addedSnippets.Add((snippet, combo.GroupUuid));
             added++;
+        }
+
+        foreach (var (snippet, groupUuid) in addedSnippets)
+        {
+            if (string.IsNullOrWhiteSpace(groupUuid)) continue;
+            if (!groupIdMap.TryGetValue(groupUuid, out var znipGroupId))
+            {
+                var importedGroup = imported.Groups.FirstOrDefault(g => g.Uuid == groupUuid);
+                if (importedGroup == null || string.IsNullOrWhiteSpace(importedGroup.Name)) continue;
+                // 同名グループが既にあれば再利用し、重複作成を避ける
+                var existing = Store.Groups.FirstOrDefault(g => g.Name == importedGroup.Name);
+                znipGroupId = existing?.Id ?? Guid.NewGuid();
+                if (existing == null)
+                    Store.Groups.Add(new Models.SnippetGroup { Id = znipGroupId, Name = importedGroup.Name });
+                groupIdMap[groupUuid] = znipGroupId;
+            }
+            snippet.GroupId = znipGroupId;
         }
 
         var s = Store.Settings;

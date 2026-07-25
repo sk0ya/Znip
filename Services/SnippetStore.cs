@@ -25,8 +25,10 @@ public class SnippetStore
 
     private static string SnippetsPath => Path.Combine(DataDirectory, "snippets.json");
     private static string SettingsPath => Path.Combine(DataDirectory, "settings.json");
+    private static string GroupsPath => Path.Combine(DataDirectory, "groups.json");
 
     public ObservableCollection<Snippet> Items { get; } = new();
+    public ObservableCollection<SnippetGroup> Groups { get; } = new();
     public AppSettings Settings { get; private set; } = new();
 
     /// <summary>フックスレッドから安全に読めるスナップショット(キーワードを持つもののみ)</summary>
@@ -52,15 +54,38 @@ public class SnippetStore
             catch { /* 壊れたファイルは無視(上書きは保存時) */ }
         }
 
+        List<SnippetGroup>? loadedGroups = null;
+        if (File.Exists(GroupsPath))
+        {
+            try { loadedGroups = JsonSerializer.Deserialize<List<SnippetGroup>>(File.ReadAllText(GroupsPath), JsonOptions); }
+            catch { /* 壊れたファイルは無視(上書きは保存時) */ }
+        }
+
         Items.Clear();
         foreach (var s in loaded ?? CreateSampleSnippets())
             Items.Add(s);
+
+        Groups.Clear();
+        foreach (var g in loadedGroups ?? new List<SnippetGroup>())
+            Groups.Add(g);
 
         RebuildSnapshot();
 
         foreach (var s in Items)
             s.PropertyChanged += OnItemChanged;
         Items.CollectionChanged += OnCollectionChanged;
+
+        foreach (var g in Groups)
+            g.PropertyChanged += OnItemChanged;
+        Groups.CollectionChanged += OnGroupsCollectionChanged;
+    }
+
+    /// <summary>グループを削除し、所属していたスニペットは未分類に戻す</summary>
+    public void RemoveGroup(SnippetGroup group)
+    {
+        foreach (var s in Items.Where(s => s.GroupId == group.Id))
+            s.GroupId = null;
+        Groups.Remove(group);
     }
 
     private static List<Snippet> CreateSampleSnippets() => new()
@@ -83,6 +108,15 @@ public class SnippetStore
 
     private void OnItemChanged(object? sender, PropertyChangedEventArgs e) => ScheduleSave();
 
+    private void OnGroupsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (SnippetGroup g in e.NewItems) g.PropertyChanged += OnItemChanged;
+        if (e.OldItems != null)
+            foreach (SnippetGroup g in e.OldItems) g.PropertyChanged -= OnItemChanged;
+        ScheduleSave();
+    }
+
     /// <summary>デバウンス付きの自動保存(600ms 変更が止まったら書き込み)</summary>
     public void ScheduleSave()
     {
@@ -102,6 +136,7 @@ public class SnippetStore
         {
             Directory.CreateDirectory(DataDirectory);
             WriteAtomic(SnippetsPath, JsonSerializer.Serialize(Items.ToList(), JsonOptions));
+            WriteAtomic(GroupsPath, JsonSerializer.Serialize(Groups.ToList(), JsonOptions));
             WriteAtomic(SettingsPath, JsonSerializer.Serialize(Settings, JsonOptions));
             Saved?.Invoke();
         }

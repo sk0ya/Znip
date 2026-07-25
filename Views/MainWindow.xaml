@@ -3,20 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Znip"
         Icon="/Znip.ico"
-        Width="960" Height="620" MinWidth="760" MinHeight="460"
+        Width="1080" Height="680" MinWidth="880" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource ContentBg}"
         FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
+        TextOptions.TextFormattingMode="Ideal"
+        UseLayoutRounding="True"
         Closing="Window_Closing">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="44" ResizeBorderThickness="6"
+        <WindowChrome CaptionHeight="46" ResizeBorderThickness="6"
                       GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="204"/>
+            <ColumnDefinition Width="190"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
@@ -30,7 +32,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- ロゴ -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20,20,20,24">
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="19,17,20,22">
                     <Border Width="30" Height="30" CornerRadius="9" Background="{StaticResource AccentBrush}">
                         <TextBlock Text="Z" Foreground="White" FontWeight="Bold" FontSize="16"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -48,12 +50,18 @@
                 </StackPanel>
 
                 <!-- フッター: ホットキー -->
-                <Border Grid.Row="2" Margin="14,0,14,16" CornerRadius="8"
+                <Border Grid.Row="2" Margin="14,0,14,16" CornerRadius="9"
                         Background="{StaticResource SidebarItemHover}" Padding="12,10">
                     <StackPanel>
-                        <TextBlock Text="ピッカー呼び出し" Foreground="{StaticResource SidebarText}" FontSize="11"/>
-                        <TextBlock x:Name="HotkeyHintText" Foreground="White" FontSize="13"
-                                   FontWeight="SemiBold" Margin="0,3,0,0"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="&#xEDA7;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                       Foreground="{StaticResource SidebarText}" VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock Text="ピッカー呼び出し" Foreground="{StaticResource SidebarText}" FontSize="11"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock x:Name="HotkeyHintText" Foreground="White" FontSize="13.5"
+                                   FontWeight="SemiBold"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -62,27 +70,28 @@
         <!-- ============ 右側 ============ -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="44"/>
+                <RowDefinition Height="46"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
             <!-- タイトルバー -->
             <Grid Grid.Row="0">
                 <TextBlock x:Name="PageTitle" Text="スニペット" VerticalAlignment="Center"
-                           Margin="24,0,0,0" FontSize="14" FontWeight="SemiBold"
+                           Margin="26,0,0,0" FontSize="15" FontWeight="SemiBold"
                            Foreground="{StaticResource TextMain}"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <Button Style="{StaticResource ChromeButton}" Content="&#xE921;" Click="Minimize_Click"
-                            WindowChrome.IsHitTestVisibleInChrome="True"/>
-                    <Button Style="{StaticResource ChromeButton}" Content="&#xE922;" Click="Maximize_Click"
+                            ToolTip="最小化" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="MaximizeButton" Style="{StaticResource ChromeButton}" Content="&#xE922;"
+                            Click="Maximize_Click" ToolTip="最大化"
                             WindowChrome.IsHitTestVisibleInChrome="True"/>
                     <Button Style="{StaticResource ChromeCloseButton}" Content="&#xE8BB;" Click="CloseButton_Click"
-                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                            ToolTip="閉じる(トレイに常駐します)" WindowChrome.IsHitTestVisibleInChrome="True"/>
                 </StackPanel>
             </Grid>
 
             <!-- ============ スニペットページ ============ -->
-            <Grid x:Name="SnippetsPanel" Grid.Row="1" Margin="24,8,24,16">
+            <Grid x:Name="SnippetsPanel" Grid.Row="1" Margin="26,4,26,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
@@ -92,214 +101,465 @@
                 <!-- ツールバー -->
                 <Grid Grid.Row="0" Margin="0,0,0,14">
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="＋ 新規" Style="{StaticResource PrimaryButton}" Click="New_Click"/>
-                        <Button x:Name="DuplicateButton" Content="複製" Style="{StaticResource ToolButton}" Click="Duplicate_Click"/>
-                        <Button x:Name="DeleteButton" Content="削除" Style="{StaticResource ToolButton}" Click="Delete_Click"/>
+                        <Button Content="＋ 新規" Style="{StaticResource PrimaryButton}" Click="New_Click"
+                                ToolTip="スニペットを新しく作る"/>
+                        <Button x:Name="DuplicateButton" Content="複製" Style="{StaticResource ToolButton}"
+                                Click="Duplicate_Click" ToolTip="選択中のスニペットを複製する"/>
+                        <Button x:Name="DeleteButton" Content="削除" Style="{StaticResource DangerButton}"
+                                Click="Delete_Click" ToolTip="選択中のスニペットを削除する"/>
                     </StackPanel>
-                    <Grid Width="230" HorizontalAlignment="Right">
+
+                    <!-- 検索 -->
+                    <Grid Width="270" HorizontalAlignment="Right">
                         <TextBox x:Name="FilterBox"
                                  Style="{StaticResource InputBox}"
+                                 Padding="32,0,32,0"
                                  TextChanged="FilterBox_TextChanged"/>
-                        <StackPanel x:Name="FilterHint" Orientation="Horizontal"
-                                    IsHitTestVisible="False" Margin="12,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets"
-                                       Foreground="{StaticResource TextSub}" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="検索" Foreground="{StaticResource TextSub}" VerticalAlignment="Center"/>
-                        </StackPanel>
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   IsHitTestVisible="False"
+                                   Foreground="{StaticResource TextFaint}"
+                                   VerticalAlignment="Center" Margin="11,0,0,0"/>
+                        <TextBlock x:Name="FilterHint" Text="キーワード・名前・本文を検索"
+                                   IsHitTestVisible="False" FontSize="12.5"
+                                   Foreground="{StaticResource TextFaint}"
+                                   VerticalAlignment="Center" Margin="33,0,0,0"/>
+                        <Button x:Name="ClearFilterButton" Style="{StaticResource IconButton}"
+                                Content="&#xE711;" FontSize="10" Width="22" Height="22"
+                                HorizontalAlignment="Right" Margin="0,0,4,0"
+                                Visibility="Collapsed" Click="ClearFilter_Click"
+                                ToolTip="検索をクリア"/>
                     </Grid>
                 </Grid>
 
-                <!-- リスト + エディタ -->
+                <!-- グループ / 一覧 / エディタ -->
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="240"/>
-                        <ColumnDefinition Width="14"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="172" MinWidth="130"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="1.15*" MinWidth="200"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="2.1*" MinWidth="300"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- グループ -->
                     <Border Grid.Column="0" Style="{StaticResource Card}">
-                        <ListBox x:Name="SnippetList" BorderThickness="0" Background="Transparent"
-                                 Margin="6" HorizontalContentAlignment="Stretch"
-                                 SelectionChanged="SnippetList_SelectionChanged"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Padding" Value="10,8"/>
-                                    <Setter Property="Margin" Value="0,1"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
-                                                    <ContentPresenter/>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
-                                                    </Trigger>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverSoft}"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="7,1.5" Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding Keyword}" FontFamily="Cascadia Code, Consolas" FontSize="12"
-                                                           Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold"/>
-                                            </Border>
-                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextMain}"
-                                                       FontSize="13" VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding Preview}" FontSize="11.5" Foreground="{StaticResource TextSub}"
-                                                   TextTrimming="CharacterEllipsis" Margin="1,3,0,0"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Border>
-
-                    <!-- エディタ -->
-                    <Border Grid.Column="2" Style="{StaticResource Card}" Padding="20">
-                        <Grid x:Name="EditorPanel">
+                        <Grid Margin="7">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0" Margin="5,3,1,7">
+                                <TextBlock Text="グループ" Style="{StaticResource ListHeader}" VerticalAlignment="Center"/>
+                                <Button Content="&#xE710;" Style="{StaticResource IconButton}"
+                                        HorizontalAlignment="Right" Click="AddGroup_Click"
+                                        ToolTip="グループを追加"/>
+                            </Grid>
+                            <ListBox x:Name="GroupList" Grid.Row="1" BorderThickness="0" Background="Transparent"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     SelectionChanged="GroupList_SelectionChanged"
+                                     PreviewMouseRightButtonDown="GroupList_PreviewMouseRightButtonDown"
+                                     ContextMenuOpening="GroupList_ContextMenuOpening">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="10,7"/>
+                                        <Setter Property="Margin" Value="0,1"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                                                        <ContentPresenter/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverSoft}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontSize="13" Foreground="{StaticResource TextMain}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                                <ListBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="名前を変更..." Click="RenameGroup_Click"/>
+                                        <MenuItem Header="削除" Click="DeleteGroup_Click"/>
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+
+                    <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}"/>
+
+                    <!-- 一覧 -->
+                    <Border Grid.Column="2" Style="{StaticResource Card}">
+                        <Grid Margin="7">
+                            <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <Grid Grid.Row="0" Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="200"/>
-                                    <ColumnDefinition Width="16"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="キーワード" Style="{StaticResource FieldLabel}"/>
-                                    <TextBox x:Name="KeywordBox" Style="{StaticResource InputBox}"
-                                             FontFamily="Cascadia Code, Consolas"
-                                             Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="このキーワードを入力すると本文に置き換わります(例: ;addr)"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
+                            <Grid Grid.Row="0" Margin="5,3,5,7">
+                                <TextBlock x:Name="ListHeaderText" Text="スニペット"
+                                           Style="{StaticResource ListHeader}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="ListCountText" Style="{StaticResource ListHeader}"
+                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <ListBox x:Name="SnippetList" Grid.Row="1" BorderThickness="0" Background="Transparent"
+                                     HorizontalContentAlignment="Stretch"
+                                     SelectionChanged="SnippetList_SelectionChanged"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="10,8"/>
+                                        <Setter Property="Margin" Value="0,1"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="3"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border x:Name="Marker" CornerRadius="2" Margin="0,7"
+                                                                    Background="Transparent"/>
+                                                            <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverSoft}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsSelected" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource AccentSoftBrush}"/>
+                                                            <Setter TargetName="Marker" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0">
+                                                    <TextBlock Text="{Binding Keyword}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextMain}"
+                                                           FontSize="13" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Preview}" FontSize="11.5" Foreground="{StaticResource TextSub}"
+                                                       TextTrimming="CharacterEllipsis" Margin="1,4,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- 空の状態 -->
+                            <StackPanel x:Name="ListEmptyPanel" Grid.Row="1" Visibility="Collapsed"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center" Margin="16,0,16,20">
+                                <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="26"
+                                           Foreground="{StaticResource BorderStrong}" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="ListEmptyText" Margin="0,10,0,0" TextAlignment="Center"
+                                           Style="{StaticResource HelpText}" Foreground="{StaticResource TextFaint}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <GridSplitter Grid.Column="3" Style="{StaticResource PaneSplitter}"/>
+
+                    <!-- エディタ -->
+                    <Border Grid.Column="4" Style="{StaticResource Card}">
+                        <Grid>
+                            <Grid x:Name="EditorPanel" Margin="20">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- キーワード / グループ -->
+                                <Grid Grid.Row="0" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="14"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="キーワード" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox x:Name="KeywordBox" Style="{StaticResource InputBox}"
+                                                 FontFamily="Cascadia Code, Consolas" FontSize="13.5"
+                                                 FontWeight="SemiBold"
+                                                 Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="このキーワードを入力すると本文に置き換わります(例: ;addr)"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="グループ" Style="{StaticResource FieldLabel}"/>
+                                        <ComboBox x:Name="GroupComboBox" Style="{StaticResource InputCombo}"
+                                                  SelectedValuePath="Id"
+                                                  SelectedValue="{Binding GroupId, UpdateSourceTrigger=PropertyChanged}"
+                                                  ToolTip="このスニペットが属するグループ">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 名前 -->
+                                <StackPanel Grid.Row="1" Margin="0,0,0,14">
                                     <TextBlock Text="名前(任意)" Style="{StaticResource FieldLabel}"/>
                                     <TextBox Style="{StaticResource InputBox}"
                                              Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
-                                             ToolTip="一覧に表示される名前"/>
+                                             ToolTip="一覧やピッカーに表示される名前"/>
                                 </StackPanel>
+
+                                <!-- 本文の見出し + 変数チップ -->
+                                <Grid Grid.Row="2" Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="本文" Style="{StaticResource FieldLabel}"
+                                               Margin="2,0,10,0" VerticalAlignment="Bottom"/>
+                                    <WrapPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal"
+                                               Margin="0,0,-6,0">
+                                        <Button Content="{}{date}" Style="{StaticResource ChipButton}"
+                                                Click="InsertVariable_Click" Tag="{}{date}"
+                                                ToolTip="今日の日付 (書式指定: {date:yyyy-MM-dd})"/>
+                                        <Button Content="{}{time}" Style="{StaticResource ChipButton}"
+                                                Click="InsertVariable_Click" Tag="{}{time}"
+                                                ToolTip="現在時刻 (書式指定: {time:HH:mm})"/>
+                                        <Button Content="{}{clipboard}" Style="{StaticResource ChipButton}"
+                                                Click="InsertVariable_Click" Tag="{}{clipboard}"
+                                                ToolTip="クリップボードの内容"/>
+                                        <Button Content="{}{cursor}" Style="{StaticResource ChipButton}"
+                                                Click="InsertVariable_Click" Tag="{}{cursor}"
+                                                ToolTip="貼り付け後のカーソル位置"/>
+                                    </WrapPanel>
+                                </Grid>
+
+                                <TextBox x:Name="ContentBox" Grid.Row="3" Style="{StaticResource InputBox}"
+                                         Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" AcceptsTab="True"
+                                         FontFamily="Cascadia Code, Consolas, Meiryo" FontSize="13.5"
+                                         Padding="12,9"
+                                         VerticalScrollBarVisibility="Auto"
+                                         VerticalContentAlignment="Top"/>
                             </Grid>
 
-                            <Grid Grid.Row="1" Margin="0,0,0,5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="本文" Style="{StaticResource FieldLabel}" VerticalAlignment="Bottom"/>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <TextBlock Text="変数:" VerticalAlignment="Center" Foreground="{StaticResource TextSub}"
-                                               FontSize="12" Margin="0,0,8,0"/>
-                                    <Button Content="{}{date}" Style="{StaticResource ToolButton}" Padding="8,3" FontSize="11.5"
-                                            FontFamily="Cascadia Code, Consolas"
-                                            Click="InsertVariable_Click" Tag="{}{date}" ToolTip="今日の日付 (書式指定: {date:yyyy-MM-dd})"/>
-                                    <Button Content="{}{time}" Style="{StaticResource ToolButton}" Padding="8,3" FontSize="11.5"
-                                            FontFamily="Cascadia Code, Consolas"
-                                            Click="InsertVariable_Click" Tag="{}{time}" ToolTip="現在時刻 (書式指定: {time:HH:mm})"/>
-                                    <Button Content="{}{clipboard}" Style="{StaticResource ToolButton}" Padding="8,3" FontSize="11.5"
-                                            FontFamily="Cascadia Code, Consolas"
-                                            Click="InsertVariable_Click" Tag="{}{clipboard}" ToolTip="クリップボードの内容"/>
-                                    <Button Content="{}{cursor}" Style="{StaticResource ToolButton}" Padding="8,3" FontSize="11.5" Margin="0"
-                                            FontFamily="Cascadia Code, Consolas"
-                                            Click="InsertVariable_Click" Tag="{}{cursor}" ToolTip="貼り付け後のカーソル位置"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <TextBox x:Name="ContentBox" Grid.Row="2" Style="{StaticResource InputBox}"
-                                     Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
-                                     AcceptsReturn="True" AcceptsTab="True"
-                                     FontFamily="Cascadia Code, Consolas, Meiryo" FontSize="13.5"
-                                     Padding="12,10"
-                                     VerticalScrollBarVisibility="Auto"
-                                     VerticalContentAlignment="Top"/>
-
-                            <TextBlock Grid.Row="3" Margin="2,10,0,0" FontSize="12" Foreground="{StaticResource TextSub}"
-                                       Text="変更は自動保存されます。キーワードを打つと自動展開、ホットキーからピッカーでも呼び出せます。"/>
+                            <!-- 未選択時のプレースホルダ -->
+                            <StackPanel x:Name="EditorPlaceholder" Visibility="Collapsed"
+                                        VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24">
+                                <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="28"
+                                           Foreground="{StaticResource BorderStrong}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="編集するスニペットを選んでください"
+                                           Margin="0,12,0,0" FontSize="13" TextAlignment="Center"
+                                           Foreground="{StaticResource TextSub}"/>
+                                <TextBlock Text="「＋ 新規」で新しいスニペットを作れます"
+                                           Margin="0,4,0,0" FontSize="12" TextAlignment="Center"
+                                           Foreground="{StaticResource TextFaint}"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
 
-                <!-- ステータス -->
-                <TextBlock x:Name="StatusText" Grid.Row="2" Margin="2,10,0,0"
-                           Foreground="{StaticResource TextSub}" FontSize="12"/>
+                <!-- ステータスバー -->
+                <Grid Grid.Row="2" Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Border Background="{StaticResource BorderSoft}"/>
+                    <Grid Grid.Row="1" Margin="2,0,2,0" Height="34">
+                        <TextBlock x:Name="StatusText" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextSub}" FontSize="12"/>
+                        <TextBlock x:Name="SaveIndicator" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextFaint}" FontSize="12"
+                                   Text="変更は自動保存されます"/>
+                    </Grid>
+                </Grid>
             </Grid>
 
             <!-- ============ 設定ページ ============ -->
-            <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Margin="24,8,24,16"
+            <ScrollViewer x:Name="SettingsPanel" Grid.Row="1" Margin="26,4,14,0" Padding="0,0,12,20"
                           VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                <StackPanel MaxWidth="620" HorizontalAlignment="Left">
+                <StackPanel MaxWidth="660" HorizontalAlignment="Left">
 
+                    <!-- ホットキー -->
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="ピッカーの呼び出しホットキー" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Text="下の欄をクリックして、使いたいキーの組み合わせを押してください(修飾キー必須)。"
-                                       Foreground="{StaticResource TextSub}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                            <TextBox x:Name="HotkeyBox" Style="{StaticResource InputBox}" Width="260" HorizontalAlignment="Left"
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="&#xEDA7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="ピッカーの呼び出しホットキー" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,12"
+                                       Text="下の欄をクリックして、使いたいキーの組み合わせを押してください(修飾キー必須)。"/>
+                            <TextBox x:Name="HotkeyBox" Style="{StaticResource InputBox}" Width="260"
+                                     HorizontalAlignment="Left" MinHeight="38"
                                      IsReadOnly="True" IsReadOnlyCaretVisible="False" Cursor="Hand"
                                      PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                                     TextAlignment="Center"
                                      FontSize="14" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="HotkeyStatus" Foreground="{StaticResource TextSub}" FontSize="12" Margin="2,6,0,0"/>
+                            <TextBlock x:Name="HotkeyStatus" Foreground="{StaticResource TextFaint}" FontSize="12"
+                                       Margin="2,8,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
+                    <!-- 自動展開 -->
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="自動展開" Style="{StaticResource SectionTitle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="自動展開" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
                             <CheckBox x:Name="AutoExpandCheck" Content="キーワードを入力したら自動で展開する(BeefText方式)"
-                                      Foreground="{StaticResource TextMain}"
                                       Checked="AutoExpand_Changed" Unchecked="AutoExpand_Changed"/>
-                            <TextBlock Foreground="{StaticResource TextSub}" FontSize="12" TextWrapping="Wrap" Margin="24,6,0,0"
+                            <TextBlock Style="{StaticResource HelpText}" Margin="28,8,0,0"
                                        Text="どのアプリでも、キーワード(例: ;date)を打ち終わった瞬間に本文へ置き換わります。&#x0a;※ 半角の直接入力が対象です。IME で変換中の文字列からは展開されません。&#x0a;※ 誤爆を防ぐため、キーワードの先頭に「;」などの記号を付けるのがおすすめです。"/>
                         </StackPanel>
                     </Border>
 
+                    <!-- 起動 -->
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="起動" Style="{StaticResource SectionTitle}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="起動" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
                             <CheckBox x:Name="StartupCheck" Content="Windows 起動時に Znip を自動で起動する"
-                                      Foreground="{StaticResource TextMain}"
                                       Checked="Startup_Changed" Unchecked="Startup_Changed"/>
                         </StackPanel>
                     </Border>
 
+                    <!-- 移行 -->
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="BeefTextからの移行" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Foreground="{StaticResource TextSub}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,10"
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="&#xE8DE;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="BeefText からの移行" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,12"
                                        Text="BeefText の comboList.json を指定して、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。&#x0a;キーワードが重複するスニペットはスキップされます。"/>
-                            <Button Content="ファイルを選んでインポート..." Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Click="ImportBeefText_Click"/>
+                            <Button Content="ファイルを選んでインポート..." Style="{StaticResource ToolButton}"
+                                    HorizontalAlignment="Left" Margin="0" Click="ImportBeefText_Click"/>
                         </StackPanel>
                     </Border>
 
+                    <!-- データ -->
                     <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="データ" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock x:Name="DataPathText" Foreground="{StaticResource TextSub}" FontSize="12" Margin="0,0,0,10"/>
-                            <Button Content="データフォルダを開く" Style="{StaticResource ToolButton}" HorizontalAlignment="Left" Click="OpenDataFolder_Click"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="データ" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
+                            <Border Background="{StaticResource ContentBg}" CornerRadius="7" Padding="10,7"
+                                    Margin="0,0,0,12">
+                                <TextBlock x:Name="DataPathText" Foreground="{StaticResource TextSub}" FontSize="11.5"
+                                           FontFamily="Cascadia Code, Consolas" TextWrapping="Wrap"/>
+                            </Border>
+                            <Button Content="データフォルダを開く" Style="{StaticResource ToolButton}"
+                                    HorizontalAlignment="Left" Margin="0" Click="OpenDataFolder_Click"/>
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,14">
+                    <!-- 変数一覧 -->
+                    <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,4">
                         <StackPanel>
-                            <TextBlock Text="使える変数" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Foreground="{StaticResource TextSub}" FontSize="12.5"
-                                       FontFamily="Cascadia Code, Consolas, Meiryo" TextWrapping="Wrap" LineHeight="22"
-                                       Text="{}{date}              今日の日付 (yyyy/MM/dd)&#x0a;{date:yyyy年M月d日}   書式指定も可能&#x0a;{time}              現在時刻 (HH:mm)&#x0a;{clipboard}         クリップボードの内容&#x0a;{cursor}            貼り付け後にカーソルを置く位置"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="&#xE943;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"
+                                           Margin="0,0,9,0"/>
+                                <TextBlock Text="使える変数" Style="{StaticResource SectionTitle}" Margin="0"/>
+                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5" Padding="7,2" Margin="0,0,0,7">
+                                    <TextBlock Text="{}{date}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="今日の日付 (yyyy/MM/dd)"
+                                           Foreground="{StaticResource TextSub}" FontSize="12.5" VerticalAlignment="Center"
+                                           Margin="0,0,0,7"/>
+
+                                <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5" Padding="7,2" Margin="0,0,0,7">
+                                    <TextBlock Text="{}{date:yyyy年M月d日}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="書式を指定した日付"
+                                           Foreground="{StaticResource TextSub}" FontSize="12.5" VerticalAlignment="Center"
+                                           Margin="0,0,0,7"/>
+
+                                <Border Grid.Row="2" Grid.Column="0" Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5" Padding="7,2" Margin="0,0,0,7">
+                                    <TextBlock Text="{}{time}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Row="2" Grid.Column="2" Text="現在時刻 (HH:mm)"
+                                           Foreground="{StaticResource TextSub}" FontSize="12.5" VerticalAlignment="Center"
+                                           Margin="0,0,0,7"/>
+
+                                <Border Grid.Row="3" Grid.Column="0" Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5" Padding="7,2" Margin="0,0,0,7">
+                                    <TextBlock Text="{}{clipboard}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Row="3" Grid.Column="2" Text="クリップボードの内容"
+                                           Foreground="{StaticResource TextSub}" FontSize="12.5" VerticalAlignment="Center"
+                                           Margin="0,0,0,7"/>
+
+                                <Border Grid.Row="4" Grid.Column="0" Background="{StaticResource AccentSoftBrush}"
+                                        CornerRadius="5" Padding="7,2">
+                                    <TextBlock Text="{}{cursor}" FontFamily="Cascadia Code, Consolas" FontSize="12"
+                                               Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock Grid.Row="4" Grid.Column="2" Text="貼り付け後にカーソルを置く位置"
+                                           Foreground="{StaticResource TextSub}" FontSize="12.5" VerticalAlignment="Center"/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using Znip.Models;
 using Znip.Services;
 
@@ -12,11 +13,31 @@ public partial class MainWindow : Window
 {
     private SnippetStore Store => App.Current.Store;
     private ICollectionView _view = null!;
+    private GroupFilterItem? _selectedGroupFilter;
+
+    /// <summary>グループサイドバーの1行を表す。Group が null の場合は仮想項目(すべて/未分類)。</summary>
+    private sealed record GroupFilterItem(string Name, SnippetGroup? Group, bool IsUngroupedFilter);
+
+    private sealed class GroupOption
+    {
+        public Guid? Id { get; init; }
+        public string Name { get; init; } = "";
+    }
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += MainWindow_Loaded;
+        StateChanged += (_, _) => UpdateMaximizeGlyph();
+    }
+
+    /// <summary>最大化ボタンのグリフを状態に合わせて切り替える</summary>
+    private void UpdateMaximizeGlyph()
+    {
+        bool max = WindowState == WindowState.Maximized;
+        //  = 元に戻す,  = 最大化 (Segoe MDL2 Assets)
+        MaximizeButton.Content = max ? "\uE923" : "\uE922";
+        MaximizeButton.ToolTip = max ? "元のサイズに戻す" : "最大化";
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -24,6 +45,9 @@ public partial class MainWindow : Window
         _view = CollectionViewSource.GetDefaultView(Store.Items);
         _view.Filter = FilterSnippet;
         SnippetList.ItemsSource = _view;
+
+        RefreshGroupFilterItems();
+        RefreshGroupComboOptions();
 
         if (SnippetList.Items.Count > 0)
             SnippetList.SelectedIndex = 0;
@@ -33,14 +57,22 @@ public partial class MainWindow : Window
         // 設定タブの初期値
         var s = Store.Settings;
         HotkeyBox.Text = s.HotkeyDisplayText();
+        HotkeyStatus.Text = "Ctrl / Shift / Alt / Win との組み合わせが使えます。";
         AutoExpandCheck.IsChecked = s.AutoExpandEnabled;
         StartupCheck.IsChecked = StartupManager.IsEnabled();
         DataPathText.Text = SnippetStore.DataDirectory;
         HotkeyHintText.Text = s.HotkeyDisplayText();
+        UpdateNavPage();
+        UpdateMaximizeGlyph();
         UpdateStatus();
+        UpdateListChrome();
+        UpdateEditor();
     }
 
-    private void Nav_Checked(object sender, RoutedEventArgs e)
+    private void Nav_Checked(object sender, RoutedEventArgs e) => UpdateNavPage();
+
+    /// <summary>ナビの選択に合わせてページを切り替える。XAML 読み込み中は各要素が未生成なので何もしない。</summary>
+    private void UpdateNavPage()
     {
         if (SnippetsPanel == null || SettingsPanel == null) return;
         bool snippets = NavSnippets.IsChecked == true;
@@ -58,45 +90,189 @@ public partial class MainWindow : Window
 
     private void OnStoreSaved()
     {
-        StatusText.Text = $"保存しました ({DateTime.Now:HH:mm:ss})  —  スニペット {Store.Items.Count} 件";
+        StatusText.Text = $"スニペット {Store.Items.Count} 件";
+        SaveIndicator.Text = $"保存しました ({DateTime.Now:HH:mm:ss})";
     }
 
     private void UpdateStatus()
     {
-        StatusText.Text = $"スニペット {Store.Items.Count} 件(変更は自動保存されます)";
+        StatusText.Text = $"スニペット {Store.Items.Count} 件";
+        SaveIndicator.Text = "変更は自動保存されます";
+    }
+
+    /// <summary>一覧の件数表示と空状態の切り替え</summary>
+    private void UpdateListChrome()
+    {
+        int shown = SnippetList.Items.Count;
+        ListCountText.Text = shown > 0 ? $"{shown} 件" : "";
+
+        bool searching = FilterBox.Text.Trim().Length > 0;
+        ListEmptyPanel.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ListEmptyText.Text = Store.Items.Count == 0
+            ? "まだスニペットがありません。\n「＋ 新規」から作ってみてください。"
+            : searching
+                ? "検索に一致するスニペットがありません。"
+                : "このグループにはスニペットがありません。";
     }
 
     private bool FilterSnippet(object obj)
     {
         if (obj is not Snippet s) return false;
+        if (!MatchesGroupFilter(s)) return false;
         var q = FilterBox.Text.Trim();
         if (q.Length == 0) return true;
         var cmp = StringComparison.OrdinalIgnoreCase;
         return s.Keyword.Contains(q, cmp) || s.Label.Contains(q, cmp) || s.Content.Contains(q, cmp);
     }
 
-    private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
+    private bool MatchesGroupFilter(Snippet s)
     {
-        FilterHint.Visibility = FilterBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-        _view?.Refresh();
+        if (_selectedGroupFilter == null) return true;
+        if (_selectedGroupFilter.Group != null) return s.GroupId == _selectedGroupFilter.Group.Id;
+        if (_selectedGroupFilter.IsUngroupedFilter) return s.GroupId == null;
+        return true; // 「すべて」
     }
 
-    private void SnippetList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    // ---- グループ ----
+
+    private void RefreshGroupFilterItems()
+    {
+        var items = new List<GroupFilterItem> { new("すべて", null, false) };
+        items.AddRange(Store.Groups
+            .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(g => new GroupFilterItem(g.Name, g, false)));
+        items.Add(new GroupFilterItem("未分類", null, true));
+
+        var previouslySelected = _selectedGroupFilter;
+        GroupList.ItemsSource = items;
+
+        var toSelect = previouslySelected == null
+            ? items[0]
+            : items.FirstOrDefault(i => i.Group?.Id == previouslySelected.Group?.Id && i.IsUngroupedFilter == previouslySelected.IsUngroupedFilter)
+              ?? items[0];
+        GroupList.SelectedItem = toSelect;
+    }
+
+    private void RefreshGroupComboOptions()
+    {
+        var items = new List<GroupOption> { new() { Id = null, Name = "(未分類)" } };
+        items.AddRange(Store.Groups
+            .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(g => new GroupOption { Id = g.Id, Name = g.Name }));
+        GroupComboBox.ItemsSource = items;
+    }
+
+    private void GroupList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        _selectedGroupFilter = GroupList.SelectedItem as GroupFilterItem;
+        _view?.Refresh();
+        UpdateListChrome();
+    }
+
+    private void AddGroup_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new InputDialog("新しいグループ", "グループ名を入力してください。") { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        var name = dialog.InputText.Trim();
+        if (name.Length == 0) return;
+
+        var group = new SnippetGroup { Name = name };
+        Store.Groups.Add(group);
+        RefreshGroupFilterItems();
+        RefreshGroupComboOptions();
+
+        var items = (List<GroupFilterItem>)GroupList.ItemsSource;
+        GroupList.SelectedItem = items.FirstOrDefault(i => i.Group?.Id == group.Id);
+    }
+
+    private void RenameGroup_Click(object sender, RoutedEventArgs e)
+    {
+        if (GroupList.SelectedItem is not GroupFilterItem { Group: SnippetGroup group }) return;
+        var dialog = new InputDialog("グループ名の変更", "新しい名前を入力してください。", group.Name) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        var name = dialog.InputText.Trim();
+        if (name.Length == 0) return;
+
+        group.Name = name;
+        RefreshGroupFilterItems();
+        RefreshGroupComboOptions();
+    }
+
+    private void DeleteGroup_Click(object sender, RoutedEventArgs e)
+    {
+        if (GroupList.SelectedItem is not GroupFilterItem { Group: SnippetGroup group }) return;
+        if (!ConfirmDialog.Ask(this, "グループの削除",
+                $"グループ「{group.Name}」を削除します。\n所属するスニペットは未分類になります。", "削除する"))
+            return;
+
+        Store.RemoveGroup(group);
+        RefreshGroupFilterItems();
+        RefreshGroupComboOptions();
+        UpdateListChrome();
+    }
+
+    private void GroupList_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d && FindAncestor<ListBoxItem>(d) is { } item)
+            item.IsSelected = true;
+    }
+
+    private void GroupList_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        // 「すべて」「未分類」は仮想項目なので名前変更・削除の対象外
+        if (GroupList.SelectedItem is not GroupFilterItem { Group: not null })
+            e.Handled = true;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject d) where T : DependencyObject
+    {
+        while (d != null && d is not T) d = VisualTreeHelper.GetParent(d);
+        return d as T;
+    }
+
+    private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        bool empty = FilterBox.Text.Length == 0;
+        FilterHint.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+        ClearFilterButton.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        _view?.Refresh();
+        UpdateListChrome();
+    }
+
+    private void ClearFilter_Click(object sender, RoutedEventArgs e)
+    {
+        FilterBox.Clear();
+        FilterBox.Focus();
+    }
+
+    private void SnippetList_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateEditor();
+
+    /// <summary>選択の有無に応じてエディタ / プレースホルダを切り替える</summary>
+    private void UpdateEditor()
     {
         var selected = SnippetList.SelectedItem as Snippet;
         EditorPanel.DataContext = selected;
-        EditorPanel.IsEnabled = selected != null;
+        EditorPanel.Visibility = selected != null ? Visibility.Visible : Visibility.Collapsed;
+        EditorPlaceholder.Visibility = selected != null ? Visibility.Collapsed : Visibility.Visible;
         DuplicateButton.IsEnabled = selected != null;
         DeleteButton.IsEnabled = selected != null;
     }
 
     private void New_Click(object sender, RoutedEventArgs e)
     {
-        var snippet = new Snippet { Keyword = NextFreeKeyword(";new"), Label = "", Content = "" };
+        var snippet = new Snippet
+        {
+            Keyword = NextFreeKeyword(";new"),
+            Label = "",
+            Content = "",
+            GroupId = _selectedGroupFilter?.Group?.Id,
+        };
         Store.Items.Add(snippet);
         FilterBox.Text = "";
         SnippetList.SelectedItem = snippet;
         SnippetList.ScrollIntoView(snippet);
+        UpdateListChrome();
+        UpdateStatus();
         KeywordBox.Focus();
         KeywordBox.SelectAll();
     }
@@ -109,10 +285,13 @@ public partial class MainWindow : Window
             Keyword = NextFreeKeyword(src.Keyword),
             Label = src.Label.Length > 0 ? src.Label + " (コピー)" : "",
             Content = src.Content,
+            GroupId = src.GroupId,
         };
         Store.Items.Add(copy);
         SnippetList.SelectedItem = copy;
         SnippetList.ScrollIntoView(copy);
+        UpdateListChrome();
+        UpdateStatus();
     }
 
     private string NextFreeKeyword(string baseKeyword)
@@ -128,15 +307,16 @@ public partial class MainWindow : Window
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
         if (SnippetList.SelectedItem is not Snippet snippet) return;
-        var result = MessageBox.Show(
-            $"「{snippet.DisplayName}」を削除しますか?", "Znip",
-            MessageBoxButton.YesNo, MessageBoxImage.Question);
-        if (result != MessageBoxResult.Yes) return;
+        if (!ConfirmDialog.Ask(this, "スニペットの削除",
+                $"「{snippet.DisplayName}」を削除します。\nこの操作は元に戻せません。", "削除する"))
+            return;
 
         int index = SnippetList.SelectedIndex;
         Store.Items.Remove(snippet);
         if (SnippetList.Items.Count > 0)
             SnippetList.SelectedIndex = Math.Min(index, SnippetList.Items.Count - 1);
+        UpdateEditor();
+        UpdateListChrome();
         UpdateStatus();
     }
 
@@ -234,6 +414,11 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
 
         App.Current.ImportFromBeefText(dialog.FileName);
+
+        RefreshGroupFilterItems();
+        RefreshGroupComboOptions();
+        UpdateListChrome();
+        UpdateStatus();
 
         // 取り込んだ設定を画面に反映
         var s = Store.Settings;

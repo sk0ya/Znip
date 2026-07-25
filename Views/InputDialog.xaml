@@ -1,0 +1,31 @@
+<Window x:Class="Znip.Views.InputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Znip"
+        Width="400" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
+        UseLayoutRounding="True"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Border Background="{StaticResource CardBg}" CornerRadius="14" Margin="14"
+            BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+            MouseLeftButtonDown="Card_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Direction="270" Opacity="0.24" Color="#1B2040"/>
+        </Border.Effect>
+        <StackPanel Margin="22,20,22,18">
+            <TextBlock x:Name="TitleText" Foreground="{StaticResource TextMain}"
+                       FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock x:Name="MessageText" Style="{StaticResource HelpText}" Margin="0,0,0,12"/>
+            <TextBox x:Name="NameBox" Style="{StaticResource InputBox}"
+                     FontSize="13.5" MinHeight="34" Margin="0,0,0,18"
+                     PreviewKeyDown="NameBox_PreviewKeyDown"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="キャンセル" Style="{StaticResource ToolButton}" MinWidth="86" Click="Cancel_Click"/>
+                <Button Content="OK" Style="{StaticResource PrimaryButton}" MinWidth="86" Margin="0" Click="Ok_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
