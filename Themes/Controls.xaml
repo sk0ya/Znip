@@ -403,7 +403,9 @@
                             CornerRadius="8">
                         <!-- 内側の 1px でフォーカスリングを描く(枠の太さを変えないのでズレない) -->
                         <Border x:Name="Ring" BorderThickness="1" BorderBrush="Transparent" CornerRadius="7">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                            <!-- PART_ContentHost に Margin="{TemplateBinding Padding}" を付けてはいけない。
+                                 TextBox は Padding を内部で文字領域に適用するので、二重に効いて余白が倍になる。 -->
+                            <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -432,8 +434,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
-                                  VerticalAlignment="Center"/>
+                    <!-- Padding は TextBox 側で効くので、ここで Margin に流し込まない(上と同じ理由) -->
+                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
