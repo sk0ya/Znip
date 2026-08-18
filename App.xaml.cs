@@ -57,9 +57,6 @@ public partial class App : System.Windows.Application
 
         CreateTrayIcon();
         WatchShowEvent();
-
-        // トレイ常駐アプリだが、手動起動時は設定画面を表示するのが親切
-        ShowSettings();
     }
 
     private void OfferBeefTextImport()
