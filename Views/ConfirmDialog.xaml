@@ -9,12 +9,10 @@
         FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
         UseLayoutRounding="True"
         PreviewKeyDown="Window_PreviewKeyDown">
-    <Border Background="{StaticResource CardBg}" CornerRadius="14" Margin="14"
-            BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-            MouseLeftButtonDown="Card_MouseLeftButtonDown">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Direction="270" Opacity="0.24" Color="#1B2040"/>
-        </Border.Effect>
+    <Border Background="{DynamicResource CardBg}" CornerRadius="14" Margin="14"
+            BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1"
+            MouseLeftButtonDown="Card_MouseLeftButtonDown"
+            Effect="{DynamicResource DialogShadow}">
         <Grid Margin="22,20,22,18">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -26,13 +24,13 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Border Width="36" Height="36" CornerRadius="10" VerticalAlignment="Top"
-                        Background="{StaticResource DangerSoftBrush}" Margin="0,2,14,0">
+                        Background="{DynamicResource DangerSoftBrush}" Margin="0,2,14,0">
                     <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="16"
-                               Foreground="{StaticResource DangerBrush}"
+                               Foreground="{DynamicResource DangerTextBrush}"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <StackPanel Grid.Column="1">
-                    <TextBlock x:Name="TitleText" Foreground="{StaticResource TextMain}"
+                    <TextBlock x:Name="TitleText" Foreground="{DynamicResource TextMain}"
                                FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,6"/>
                     <TextBlock x:Name="MessageText" Style="{StaticResource HelpText}"/>
                 </StackPanel>

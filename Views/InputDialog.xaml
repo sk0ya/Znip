@@ -9,14 +9,12 @@
         FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
         UseLayoutRounding="True"
         PreviewKeyDown="Window_PreviewKeyDown">
-    <Border Background="{StaticResource CardBg}" CornerRadius="14" Margin="14"
-            BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-            MouseLeftButtonDown="Card_MouseLeftButtonDown">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="5" Direction="270" Opacity="0.24" Color="#1B2040"/>
-        </Border.Effect>
+    <Border Background="{DynamicResource CardBg}" CornerRadius="14" Margin="14"
+            BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1"
+            MouseLeftButtonDown="Card_MouseLeftButtonDown"
+            Effect="{DynamicResource DialogShadow}">
         <StackPanel Margin="22,20,22,18">
-            <TextBlock x:Name="TitleText" Foreground="{StaticResource TextMain}"
+            <TextBlock x:Name="TitleText" Foreground="{DynamicResource TextMain}"
                        FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock x:Name="MessageText" Style="{StaticResource HelpText}" Margin="0,0,0,12"/>
             <TextBox x:Name="NameBox" Style="{StaticResource InputBox}"

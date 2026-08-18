@@ -21,13 +21,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="Bd" Background="{StaticResource PickerThumb}" CornerRadius="4" Margin="2"/>
+                        <Border x:Name="Bd" Background="{DynamicResource PickerThumb}" CornerRadius="4" Margin="2"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PickerThumbHover}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PickerThumbHover}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource PickerThumbHover}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PickerThumbHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -61,29 +61,27 @@
 
         <!-- キー表示用のチップ -->
         <Style x:Key="KeyCap" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource PickerChipBg}"/>
+            <Setter Property="Background" Value="{DynamicResource PickerKeyCapBg}"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="5,1"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
         </Style>
         <Style x:Key="KeyCapText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource PickerText}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PickerSub}"/>
             <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="KeyCapLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource PickerSub}"/>
+            <Setter Property="Foreground" Value="{DynamicResource PickerSub}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="0,0,14,0"/>
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource PickerBg}" CornerRadius="14"
-            BorderBrush="{StaticResource PickerBorder}" BorderThickness="1" Margin="14">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="26" ShadowDepth="6" Direction="270" Opacity="0.5" Color="#000000"/>
-        </Border.Effect>
+    <Border Background="{DynamicResource PickerBg}" CornerRadius="14"
+            BorderBrush="{DynamicResource PickerBorder}" BorderThickness="1" Margin="16"
+            Effect="{DynamicResource PickerShadow}">
         <Grid Margin="8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -99,24 +97,24 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="16"
-                           Foreground="{StaticResource PickerSub}" VerticalAlignment="Center" Margin="6,0,12,0"/>
+                           Foreground="{DynamicResource PickerSub}" VerticalAlignment="Center" Margin="6,0,12,0"/>
                 <Grid Grid.Column="1">
                     <TextBox x:Name="SearchBox"
                              Background="Transparent" BorderThickness="0"
-                             Foreground="{StaticResource PickerText}"
-                             CaretBrush="{StaticResource AccentBrush}"
-                             SelectionBrush="{StaticResource AccentBrush}"
+                             Foreground="{DynamicResource PickerText}"
+                             CaretBrush="{DynamicResource AccentBrush}"
+                             SelectionBrush="{DynamicResource AccentBrush}"
                              FontSize="17" Padding="0,11"
                              VerticalContentAlignment="Center"
                              TextChanged="SearchBox_TextChanged"/>
                     <TextBlock x:Name="SearchHint" Text="スニペットを検索…"
                                IsHitTestVisible="False"
                                VerticalAlignment="Center" FontSize="17"
-                               Foreground="{StaticResource PickerSub}"/>
+                               Foreground="{DynamicResource PickerSub}"/>
                 </Grid>
             </Grid>
 
-            <Border Grid.Row="1" Height="1" Background="{StaticResource PickerBorder}" Margin="2,4,2,6"/>
+            <Border Grid.Row="1" Height="1" Background="{DynamicResource PickerBorder}" Margin="2,4,2,6"/>
 
             <!-- 結果リスト -->
             <ListBox x:Name="ResultList" Grid.Row="2"
@@ -148,11 +146,11 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PickerHover}"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PickerHover}"/>
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PickerSelBg}"/>
-                                            <Setter TargetName="AccentBar" Property="Background" Value="{StaticResource AccentBrush}"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource PickerSelBg}"/>
+                                            <Setter TargetName="AccentBar" Property="Background" Value="{DynamicResource AccentBrush}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -164,7 +162,7 @@
                     <DataTemplate>
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Border Background="{StaticResource PickerChipBg}" CornerRadius="5" Padding="7,2" Margin="0,0,9,0">
+                                <Border Background="{DynamicResource PickerChipBg}" CornerRadius="5" Padding="7,2" Margin="0,0,9,0">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Style.Triggers>
@@ -175,13 +173,13 @@
                                         </Style>
                                     </Border.Style>
                                     <TextBlock Text="{Binding Keyword}" FontFamily="Cascadia Code, Consolas" FontSize="12.5"
-                                               Foreground="{StaticResource PickerChipText}" FontWeight="SemiBold"/>
+                                               Foreground="{DynamicResource PickerChipText}" FontWeight="SemiBold"/>
                                 </Border>
                                 <TextBlock Text="{Binding Label}" FontSize="13.5" FontWeight="SemiBold"
-                                           Foreground="{StaticResource PickerText}" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PickerText}" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding Preview}" FontSize="12" Foreground="{StaticResource PickerSub}"
+                            <TextBlock Text="{Binding Preview}" FontSize="12" Foreground="{DynamicResource PickerSub}"
                                        TextTrimming="CharacterEllipsis" Margin="1,4,0,0"/>
                         </StackPanel>
                     </DataTemplate>
@@ -192,9 +190,9 @@
             <StackPanel x:Name="EmptyText" Grid.Row="2" Margin="0,22,0,16" Visibility="Collapsed"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="22"
-                           Foreground="{StaticResource PickerBorder}" HorizontalAlignment="Center"/>
+                           Foreground="{DynamicResource PickerSub}" Opacity="0.5" HorizontalAlignment="Center"/>
                 <TextBlock Text="一致するスニペットがありません"
-                           Foreground="{StaticResource PickerSub}" FontSize="12.5"
+                           Foreground="{DynamicResource PickerSub}" FontSize="12.5"
                            Margin="0,10,0,0" HorizontalAlignment="Center"/>
             </StackPanel>
 
@@ -219,7 +217,7 @@
                     <TextBlock Text="閉じる" Style="{StaticResource KeyCapLabel}" Margin="0"/>
                 </StackPanel>
                 <TextBlock Text="Znip" HorizontalAlignment="Right" VerticalAlignment="Center"
-                           Foreground="{StaticResource PickerBorder}"
+                           Foreground="{DynamicResource TextFaint}"
                            FontSize="11" FontWeight="SemiBold"/>
             </Grid>
         </Grid>

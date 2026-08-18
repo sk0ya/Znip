@@ -15,8 +15,38 @@ public partial class MainWindow : Window
     private ICollectionView _view = null!;
     private GroupFilterItem? _selectedGroupFilter;
 
-    /// <summary>グループサイドバーの1行を表す。Group が null の場合は仮想項目(すべて/未分類)。</summary>
-    private sealed record GroupFilterItem(string Name, SnippetGroup? Group, bool IsUngroupedFilter);
+    /// <summary>ホットキー欄が「記録中」かどうか。明示的にクリックされたときだけ true になる
+    /// (フォーカスが当たっただけで押したキーを拾ってしまうと、誤って書き換わるため)</summary>
+    private bool _recordingHotkey;
+
+    /// <summary>グループペインの1行。Group が null の場合は仮想項目(すべて/未分類)。</summary>
+    private sealed class GroupFilterItem : INotifyPropertyChanged
+    {
+        private int _count;
+
+        public GroupFilterItem(string name, SnippetGroup? group, bool isUngroupedFilter)
+        {
+            Name = name;
+            Group = group;
+            IsUngroupedFilter = isUngroupedFilter;
+        }
+
+        public string Name { get; }
+        public SnippetGroup? Group { get; }
+        public bool IsUngroupedFilter { get; }
+
+        /// <summary>この行に属するスニペットの件数(検索語は無視した総数)</summary>
+        public int Count
+        {
+            get => _count;
+            set { if (_count != value) { _count = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Count))); } }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    /// <summary>設定ページの変数一覧の1行</summary>
+    private sealed record VariableRow(string Name, string Description);
 
     private sealed class GroupOption
     {
@@ -54,10 +84,25 @@ public partial class MainWindow : Window
 
         Store.Saved += OnStoreSaved;
 
+        VariableList.ItemsSource = new[]
+        {
+            new VariableRow("{date}", "今日の日付 (yyyy/MM/dd)"),
+            new VariableRow("{date:yyyy年M月d日}", "書式を指定した日付"),
+            new VariableRow("{time}", "現在時刻 (HH:mm)"),
+            new VariableRow("{clipboard}", "クリップボードの内容"),
+            new VariableRow("{cursor}", "貼り付け後にカーソルを置く位置"),
+        };
+
         // 設定タブの初期値
         var s = Store.Settings;
+        switch (s.Theme)
+        {
+            case AppTheme.Light: ThemeLightRadio.IsChecked = true; break;
+            case AppTheme.Dark: ThemeDarkRadio.IsChecked = true; break;
+            default: ThemeSystemRadio.IsChecked = true; break;
+        }
         HotkeyBox.Text = s.HotkeyDisplayText();
-        HotkeyStatus.Text = "Ctrl / Shift / Alt / Win との組み合わせが使えます。";
+        HotkeyStatus.Text = HotkeyHelpText;
         AutoExpandCheck.IsChecked = s.AutoExpandEnabled;
         StartupCheck.IsChecked = StartupManager.IsEnabled();
         DataPathText.Text = SnippetStore.DataDirectory;
@@ -78,7 +123,6 @@ public partial class MainWindow : Window
         bool snippets = NavSnippets.IsChecked == true;
         SnippetsPanel.Visibility = snippets ? Visibility.Visible : Visibility.Collapsed;
         SettingsPanel.Visibility = snippets ? Visibility.Collapsed : Visibility.Visible;
-        PageTitle.Text = snippets ? "スニペット" : "設定";
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -87,18 +131,6 @@ public partial class MainWindow : Window
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
-
-    /// <summary>
-    /// サイドバーの余白をドラッグしてウィンドウを移動する。
-    /// ナビ項目(RadioButton)の上ではボタンがイベントを処理するため、ここには届かない。
-    /// 上端 46px は WindowChrome のキャプション領域なので元から移動できる。
-    /// </summary>
-    private void Sidebar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ButtonState != MouseButtonState.Pressed) return;
-        if (WindowState == WindowState.Maximized) return; // 最大化中の DragMove は例外になる
-        DragMove();
-    }
 
     private void OnStoreSaved()
     {
@@ -112,16 +144,16 @@ public partial class MainWindow : Window
         SaveIndicator.Text = "変更は自動保存されます";
     }
 
-    /// <summary>一覧の件数表示と空状態の切り替え</summary>
+    /// <summary>空状態の切り替えとグループの件数更新</summary>
     private void UpdateListChrome()
     {
         int shown = SnippetList.Items.Count;
-        ListCountText.Text = shown > 0 ? $"{shown} 件" : "";
+        RefreshGroupCounts();
 
         bool searching = FilterBox.Text.Trim().Length > 0;
         ListEmptyPanel.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
         ListEmptyText.Text = Store.Items.Count == 0
-            ? "まだスニペットがありません。\n「＋ 新規」から作ってみてください。"
+            ? "まだスニペットがありません。\n右上の ＋ から作ってみてください。"
             : searching
                 ? "検索に一致するスニペットがありません。"
                 : "このグループにはスニペットがありません。";
@@ -163,6 +195,21 @@ public partial class MainWindow : Window
             : items.FirstOrDefault(i => i.Group?.Id == previouslySelected.Group?.Id && i.IsUngroupedFilter == previouslySelected.IsUngroupedFilter)
               ?? items[0];
         GroupList.SelectedItem = toSelect;
+        RefreshGroupCounts();
+    }
+
+    /// <summary>グループ行の右端に出す件数を数え直す(検索語では絞らない)</summary>
+    private void RefreshGroupCounts()
+    {
+        if (GroupList.ItemsSource is not List<GroupFilterItem> items) return;
+        foreach (var item in items)
+        {
+            item.Count = item.Group != null
+                ? Store.Items.Count(s => s.GroupId == item.Group.Id)
+                : item.IsUngroupedFilter
+                    ? Store.Items.Count(s => s.GroupId == null)
+                    : Store.Items.Count;
+        }
     }
 
     private void RefreshGroupComboOptions()
@@ -272,6 +319,7 @@ public partial class MainWindow : Window
 
     private void New_Click(object sender, RoutedEventArgs e)
     {
+        NavSnippets.IsChecked = true;
         var snippet = new Snippet
         {
             Keyword = NextFreeKeyword(";new"),
@@ -344,10 +392,48 @@ public partial class MainWindow : Window
 
     // ---- 設定タブ ----
 
+    private const string HotkeyHelpText = "欄をクリックすると変更できます(Ctrl / Shift / Alt / Win との組み合わせ)。";
+
+    /// <summary>クリックされて初めて記録を始める</summary>
+    private void HotkeyBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        StartRecordingHotkey();
+    }
+
+    private void HotkeyBox_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!_recordingHotkey) return;
+        _recordingHotkey = false;
+        HotkeyStatus.Text = HotkeyHelpText;
+    }
+
+    private void StartRecordingHotkey()
+    {
+        _recordingHotkey = true;
+        HotkeyStatus.Text = "使いたいキーの組み合わせを押してください(Esc で取り消し)。";
+        HotkeyBox.Focus();
+    }
+
     private void HotkeyBox_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         e.Handled = true;
+
+        // 記録中でなければ何も変えない。Space / Enter で記録を開始できる(キーボード操作用)
+        if (!_recordingHotkey)
+        {
+            if (e.Key is Key.Space or Key.Enter) StartRecordingHotkey();
+            return;
+        }
+
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+        if (key == Key.Escape)
+        {
+            _recordingHotkey = false;
+            HotkeyStatus.Text = HotkeyHelpText;
+            Keyboard.ClearFocus();
+            return;
+        }
 
         // 修飾キー単独はまだ組み合わせの途中
         if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
@@ -372,6 +458,7 @@ public partial class MainWindow : Window
 
         if (App.Current.Hotkeys.Register(mods, key))
         {
+            _recordingHotkey = false;
             HotkeyBox.Text = s.HotkeyDisplayText();
             HotkeyHintText.Text = s.HotkeyDisplayText();
             HotkeyStatus.Text = "ホットキーを変更しました。";
@@ -385,6 +472,18 @@ public partial class MainWindow : Window
             App.Current.Hotkeys.Register(oldMods, oldKey);
             HotkeyStatus.Text = "そのキーは他のアプリが使用中です。別の組み合わせを試してください。";
         }
+    }
+
+    private void Theme_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        var theme = ThemeLightRadio.IsChecked == true ? AppTheme.Light
+                  : ThemeDarkRadio.IsChecked == true ? AppTheme.Dark
+                  : AppTheme.System;
+        if (Store.Settings.Theme == theme) return;
+        Store.Settings.Theme = theme;
+        ThemeManager.Apply(theme);
+        Store.ScheduleSave();
     }
 
     private void AutoExpand_Changed(object sender, RoutedEventArgs e)

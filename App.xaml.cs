@@ -40,6 +40,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         Store.Load();
+        ThemeManager.Apply(Store.Settings.Theme);
 
         if (!Store.Settings.BeefTextImportPrompted)
         {
