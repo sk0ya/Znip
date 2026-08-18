@@ -82,7 +82,8 @@ public static class BeefTextImporter
                         Enabled = GetBool(c, "enabled", true),
                         GroupUuid = GetString(c, "group"),
                     };
-                    if (!string.IsNullOrWhiteSpace(combo.Keyword) && combo.Enabled)
+                    // キーワードが無いコンボも取り込む(自動展開はされないがピッカーから選べる)
+                    if (combo.Enabled)
                         result.Combos.Add(combo);
                 }
             }

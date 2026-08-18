@@ -88,6 +88,18 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    /// <summary>
+    /// サイドバーの余白をドラッグしてウィンドウを移動する。
+    /// ナビ項目(RadioButton)の上ではボタンがイベントを処理するため、ここには届かない。
+    /// 上端 46px は WindowChrome のキャプション領域なので元から移動できる。
+    /// </summary>
+    private void Sidebar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ButtonState != MouseButtonState.Pressed) return;
+        if (WindowState == WindowState.Maximized) return; // 最大化中の DragMove は例外になる
+        DragMove();
+    }
+
     private void OnStoreSaved()
     {
         StatusText.Text = $"スニペット {Store.Items.Count} 件";

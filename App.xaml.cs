@@ -88,13 +88,38 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        int added = 0, skipped = 0;
+        // 未編集の既定スニペットが残っていれば、置き換えるかどうかを先に確認する
+        // (先に消しておくことで、同じキーワードの取り込みが重複扱いでスキップされない)
+        int removedDefaults = 0;
+        var defaults = Store.FindUntouchedSampleSnippets();
+        if (defaults.Count > 0 && imported.Combos.Count > 0)
+        {
+            var answer = MessageBox.Show(
+                $"Znip の既定のスニペットが {defaults.Count} 件あります(未編集のサンプル)。\n" +
+                "削除して BeefText のスニペットで置き換えますか?\n" +
+                "「いいえ」を選ぶと、既定のスニペットを残したまま追加します。",
+                "Znip — BeefTextからの移行", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (answer == MessageBoxResult.Cancel) return;
+            if (answer == MessageBoxResult.Yes)
+            {
+                foreach (var d in defaults)
+                    Store.Items.Remove(d);
+                removedDefaults = defaults.Count;
+            }
+        }
+
+        int added = 0, skipped = 0, noKeyword = 0;
         var groupIdMap = new Dictionary<string, Guid>(); // BeefText の group uuid -> Znip の GroupId(実際に使われたものだけ変換)
         var addedSnippets = new List<(Models.Snippet Snippet, string GroupUuid)>();
 
         foreach (var combo in imported.Combos)
         {
-            if (Store.Items.Any(s => s.Keyword == combo.Keyword)) { skipped++; continue; }
+            // キーワードが無いものはキーワードで重複判定できないため、名前と本文が同じなら重複とみなす
+            bool duplicate = string.IsNullOrWhiteSpace(combo.Keyword)
+                ? Store.Items.Any(s => string.IsNullOrWhiteSpace(s.Keyword) && s.Label == combo.Name && s.Content == combo.Snippet)
+                : Store.Items.Any(s => s.Keyword == combo.Keyword);
+            if (duplicate) { skipped++; continue; }
+            if (string.IsNullOrWhiteSpace(combo.Keyword)) noKeyword++;
             var snippet = new Models.Snippet { Keyword = combo.Keyword, Label = combo.Name, Content = combo.Snippet };
             Store.Items.Add(snippet);
             addedSnippets.Add((snippet, combo.GroupUuid));
@@ -132,8 +157,11 @@ public partial class App : System.Windows.Application
         }
         Store.ScheduleSave();
 
-        MessageBox.Show($"スニペット {added} 件を取り込みました。(重複のためスキップ: {skipped} 件)",
-            "Znip", MessageBoxButton.OK, MessageBoxImage.Information);
+        var message = $"スニペット {added} 件を取り込みました。";
+        if (skipped > 0) message += $"\n重複のためスキップ: {skipped} 件";
+        if (noKeyword > 0) message += $"\nキーワードなし: {noKeyword} 件(自動展開はされませんが、ピッカーから選べます)";
+        if (removedDefaults > 0) message += $"\n既定のスニペットを削除: {removedDefaults} 件";
+        MessageBox.Show(message, "Znip", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     public void RegisterHotkeyFromSettings()

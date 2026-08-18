@@ -23,7 +23,9 @@
         </Grid.ColumnDefinitions>
 
         <!-- ============ サイドバー ============ -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarBg}">
+        <!-- 空き部分のドラッグでウィンドウを移動できる(ナビ項目のクリックはボタン側が処理する) -->
+        <Border Grid.Column="0" Background="{StaticResource SidebarBg}"
+                MouseLeftButtonDown="Sidebar_MouseLeftButtonDown">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -257,7 +259,17 @@
                                     <DataTemplate>
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">
+                                                <!-- キーワードが無いスニペット(BeefTextからの取り込み等)ではチップを表示しない -->
                                                 <Border Background="{StaticResource AccentSoftBrush}" CornerRadius="5" Padding="7,2" Margin="0,0,8,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasKeyword}" Value="False">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
                                                     <TextBlock Text="{Binding Keyword}" FontFamily="Cascadia Code, Consolas" FontSize="12"
                                                                Foreground="{StaticResource AccentTextBrush}" FontWeight="SemiBold"/>
                                                 </Border>
@@ -468,7 +480,7 @@
                                 <TextBlock Text="BeefText からの移行" Style="{StaticResource SectionTitle}" Margin="0"/>
                             </StackPanel>
                             <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,12"
-                                       Text="BeefText の comboList.json を指定して、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。&#x0a;キーワードが重複するスニペットはスキップされます。"/>
+                                       Text="BeefText の comboList.json を指定して、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。&#x0a;キーワードが重複するスニペットはスキップされます。キーワードが無いスニペットも取り込み、ピッカーから選んで使えます。&#x0a;未編集の既定スニペットが残っている場合は、置き換えるかどうかを確認します。"/>
                             <Button Content="ファイルを選んでインポート..." Style="{StaticResource ToolButton}"
                                     HorizontalAlignment="Left" Margin="0" Click="ImportBeefText_Click"/>
                         </StackPanel>

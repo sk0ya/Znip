@@ -88,6 +88,17 @@ public class SnippetStore
         Groups.Remove(group);
     }
 
+    /// <summary>
+    /// 初回起動時に作られる既定のスニペットのうち、まだ編集されていないものを列挙する。
+    /// (Id は起動ごとに変わるため、キーワード・名前・本文の一致で判定する)
+    /// </summary>
+    public List<Snippet> FindUntouchedSampleSnippets()
+    {
+        var samples = CreateSampleSnippets();
+        return Items.Where(s => samples.Any(d =>
+            d.Keyword == s.Keyword && d.Label == s.Label && d.Content == s.Content)).ToList();
+    }
+
     private static List<Snippet> CreateSampleSnippets() => new()
     {
         new Snippet { Keyword = ";date", Label = "今日の日付", Content = "{date:yyyy/MM/dd}" },

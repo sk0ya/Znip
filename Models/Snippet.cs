@@ -23,7 +23,7 @@ public class Snippet : INotifyPropertyChanged
     public string Keyword
     {
         get => _keyword;
-        set { if (_keyword != value) { _keyword = value; OnPropertyChanged(nameof(Keyword)); OnPropertyChanged(nameof(DisplayName)); } }
+        set { if (_keyword != value) { _keyword = value; OnPropertyChanged(nameof(Keyword)); OnPropertyChanged(nameof(DisplayName)); OnPropertyChanged(nameof(HasKeyword)); } }
     }
 
     /// <summary>表示用の名前(任意)</summary>
@@ -39,6 +39,10 @@ public class Snippet : INotifyPropertyChanged
         get => _content;
         set { if (_content != value) { _content = value; OnPropertyChanged(nameof(Content)); OnPropertyChanged(nameof(Preview)); } }
     }
+
+    /// <summary>キーワードを持つか(空ならリストのキーワード表示を隠す。自動展開の対象外)</summary>
+    [JsonIgnore]
+    public bool HasKeyword => !string.IsNullOrWhiteSpace(Keyword);
 
     [JsonIgnore]
     public string DisplayName => string.IsNullOrWhiteSpace(Label) ? Keyword : Label;
