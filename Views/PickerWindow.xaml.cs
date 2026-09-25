@@ -66,40 +66,40 @@ public partial class PickerWindow : Window
         Top = Math.Max(waTopLeft.Y, Math.Min(pos.Y + 12, waBottomRight.Y - h));
     }
 
+    /// <summary>結果リストの1行(グループ名はスニペット側に持っていないので引いておく)</summary>
+    private sealed record PickerRow(Snippet Snippet, string GroupName);
+
     private void RefreshList()
     {
-        var query = SearchBox.Text.Trim();
-        List<Snippet> results;
+        var terms = SnippetMatcher.ParseQuery(SearchBox.Text);
+        var groupNames = _store.Groups.ToDictionary(g => g.Id, g => g.Name);
+        string GroupOf(Snippet s) => s.GroupId is Guid id && groupNames.TryGetValue(id, out var n) ? n : "";
 
-        if (query.Length == 0)
-        {
-            results = _store.Items.ToList();
-        }
-        else
-        {
-            // キーワード前方一致 > キーワード部分一致 > 名前 > 本文 の順で並べる
-            results = _store.Items
-                .Select(s => (Snippet: s, Score: Score(s, query)))
-                .Where(t => t.Score > 0)
-                .OrderByDescending(t => t.Score)
-                .Select(t => t.Snippet)
-                .ToList();
-        }
+        // 検索語が空なら最近使った順。検索中は一致の強さ順で、同点なら最近使った順
+        var results = _store.Items
+            .Select(s => new { Row = new PickerRow(s, GroupOf(s)), Score = SnippetMatcher.Score(s, GroupOf(s), terms) })
+            .Where(t => t.Score > 0)
+            .OrderByDescending(t => t.Score)
+            .ThenByDescending(t => t.Row.Snippet.LastUsed ?? DateTime.MinValue)
+            .ThenBy(t => t.Row.Snippet.Title, StringComparer.CurrentCultureIgnoreCase)
+            .Select(t => t.Row)
+            .ToList();
 
         ResultList.ItemsSource = results;
         EmptyText.Visibility = results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (results.Count > 0)
             ResultList.SelectedIndex = 0;
+        UpdatePreview();
     }
 
-    private static int Score(Snippet s, string query)
+    private void ResultList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => UpdatePreview();
+
+    /// <summary>下のプレビュー欄に選択中の本文を出す(変数は展開せずそのまま)</summary>
+    private void UpdatePreview()
     {
-        var cmp = StringComparison.OrdinalIgnoreCase;
-        if (s.Keyword.StartsWith(query, cmp)) return 400;
-        if (s.Keyword.Contains(query, cmp)) return 300;
-        if (s.Label.Contains(query, cmp)) return 200;
-        if (s.Content.Contains(query, cmp)) return 100;
-        return 0;
+        var content = (ResultList.SelectedItem as PickerRow)?.Snippet.Content.Trim('\r', '\n');
+        PreviewPane.Visibility = string.IsNullOrEmpty(content) ? Visibility.Collapsed : Visibility.Visible;
+        PreviewText.Text = content ?? "";
     }
 
     private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -141,13 +141,27 @@ public partial class PickerWindow : Window
         ResultList.ScrollIntoView(ResultList.SelectedItem);
     }
 
-    private void ResultList_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => _ = CommitAsync(copyOnly: false);
+    /// <summary>行をクリックしたらそのまま貼り付ける(スクロールバーの操作は除く)</summary>
+    private void ResultList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var d = e.OriginalSource as DependencyObject;
+        while (d != null && d is not System.Windows.Controls.ListBoxItem)
+            d = VisualTreeHelper.GetParent(d);
+        if (d is System.Windows.Controls.ListBoxItem { DataContext: PickerRow row })
+        {
+            ResultList.SelectedItem = row;
+            _ = CommitAsync(copyOnly: false);
+        }
+    }
 
     private async Task CommitAsync(bool copyOnly)
     {
-        if (_committing || ResultList.SelectedItem is not Snippet snippet)
+        if (_committing || ResultList.SelectedItem is not PickerRow { Snippet: var snippet })
             return;
         _committing = true;
+
+        snippet.LastUsed = DateTime.Now;
+        _store.ScheduleSave();
 
         try
         {

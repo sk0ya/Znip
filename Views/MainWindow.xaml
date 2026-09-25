@@ -3,103 +3,282 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Znip"
         Icon="/Znip.ico"
-        Width="1100" Height="700" MinWidth="880" MinHeight="540"
+        Width="1120" Height="720" MinWidth="880" MinHeight="540"
         WindowStartupLocation="CenterScreen"
-        Background="{DynamicResource ChromeBg}"
+        Background="{DynamicResource ContentBg}"
         FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
-        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
-        Closing="Window_Closing">
+        Closing="Window_Closing"
+        PreviewKeyDown="Window_PreviewKeyDown">
 
+    <!-- タイトルバーは持たず、各ペインの上端 48px をキャプション(ドラッグで窓が動く領域)として使う。
+         その範囲に置く操作部品には WindowChrome.IsHitTestVisibleInChrome を付けること -->
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="44" ResizeBorderThickness="6"
+        <WindowChrome CaptionHeight="48" ResizeBorderThickness="6"
                       GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="44"/>
-            <RowDefinition Height="1"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="1"/>
-            <RowDefinition Height="30"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" MinWidth="170" MaxWidth="340"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- ===== タイトルバー ===== -->
-        <!-- ここは WindowChrome のキャプション領域なので、空きをドラッグすれば窓が動く -->
-        <Grid Grid.Row="0" Background="{DynamicResource ChromeBg}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <!-- ================= サイドバー ================= -->
+        <Grid Grid.Column="0" Background="{DynamicResource ChromeBg}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
             <!-- ロゴ(アイコンと同じティール→インディゴ) -->
-            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="14,0,16,0">
-                <Border Width="24" Height="24" CornerRadius="7" Background="{DynamicResource LogoBrush}">
-                    <TextBlock Text="Z" Foreground="White" FontWeight="Bold" FontSize="13.5"
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="18,0,0,0" VerticalAlignment="Center">
+                <Border Width="22" Height="22" CornerRadius="6" Background="{DynamicResource LogoBrush}">
+                    <TextBlock Text="Z" Foreground="White" FontWeight="Bold" FontSize="12.5"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
                 <TextBlock Text="Znip" Foreground="{DynamicResource TextMain}"
-                           FontSize="13.5" FontWeight="SemiBold"
+                           FontSize="14" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="9,0,0,0"/>
             </StackPanel>
 
-            <!-- ページ切り替えタブ -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
-                        WindowChrome.IsHitTestVisibleInChrome="True">
-                <RadioButton x:Name="NavSnippets" Style="{StaticResource TopTab}" GroupName="Page"
-                             Content="スニペット" IsChecked="True" Checked="Nav_Checked"/>
-                <RadioButton x:Name="NavSettings" Style="{StaticResource TopTab}" GroupName="Page"
-                             Content="設定" Checked="Nav_Checked"/>
-            </StackPanel>
+            <!-- グループの見出し + 追加 -->
+            <Grid Grid.Row="1" Margin="20,8,12,4">
+                <TextBlock Text="グループ" Style="{StaticResource SidebarLabel}"/>
+                <Button Style="{StaticResource IconButton}" Content="&#xE710;" FontSize="11"
+                        Width="24" Height="24" HorizontalAlignment="Right"
+                        Click="AddGroup_Click" ToolTip="グループを追加"/>
+            </Grid>
 
-            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
-                <Button Style="{StaticResource ChromeButton}" Content="&#xE921;" Click="Minimize_Click"
-                        ToolTip="最小化" WindowChrome.IsHitTestVisibleInChrome="True"/>
-                <Button x:Name="MaximizeButton" Style="{StaticResource ChromeButton}" Content="&#xE922;"
-                        Click="Maximize_Click" ToolTip="最大化"
-                        WindowChrome.IsHitTestVisibleInChrome="True"/>
-                <Button Style="{StaticResource ChromeCloseButton}" Content="&#xE8BB;" Click="CloseButton_Click"
-                        ToolTip="閉じる(トレイに常駐します)" WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <ListBox x:Name="GroupList" Grid.Row="2" BorderThickness="0" Background="Transparent"
+                     Margin="10,0,8,0"
+                     AllowDrop="True"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     SelectionChanged="GroupList_SelectionChanged"
+                     PreviewMouseLeftButtonDown="GroupList_PreviewMouseLeftButtonDown"
+                     PreviewMouseRightButtonDown="GroupList_PreviewMouseRightButtonDown"
+                     MouseDoubleClick="GroupList_MouseDoubleClick"
+                     KeyDown="GroupList_KeyDown"
+                     DragOver="GroupList_DragOver"
+                     DragLeave="GroupList_DragLeave"
+                     Drop="GroupList_Drop"
+                     ContextMenuOpening="GroupList_ContextMenuOpening">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="10,0"/>
+                        <Setter Property="Margin" Value="0,1"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <StackPanel>
+                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Height="34"
+                                                BorderBrush="Transparent" BorderThickness="1"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter VerticalAlignment="Center"/>
+                                        </Border>
+                                        <!-- 「すべて / 未分類」と自分で作ったグループの境目 -->
+                                        <Border x:Name="Divider" Height="1" Margin="10,6,10,5" Visibility="Collapsed"
+                                                Background="{DynamicResource BorderSoft}"/>
+                                    </StackPanel>
+                                    <ControlTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding HasDividerAfter}" Value="True">
+                                            <Setter TargetName="Divider" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverSoft}"/>
+                                        </Trigger>
+                                        <!-- 設定ページを表示している間は、グループの選択を目立たせない -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True"/>
+                                                <Condition Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="{x:Null}"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </MultiDataTrigger>
+                                        <!-- スニペットをドラッグして、この行の上にあるとき -->
+                                        <Trigger Property="Tag" Value="DropTarget">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Foreground" Value="{DynamicResource TextMain}"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="Icon" Text="{Binding Glyph}" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                       Width="16" TextAlignment="Center"
+                                       Foreground="{DynamicResource TextFaint}"
+                                       VerticalAlignment="Center" Margin="0,0,11,0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="CountText" Grid.Column="2" Text="{Binding Count}" FontSize="11.5"
+                                       FontWeight="Normal"
+                                       Foreground="{DynamicResource TextFaint}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            <!-- 自分で作ったグループだけ、ホバー中に名前変更 / 削除を出す -->
+                            <StackPanel x:Name="Actions" Grid.Column="2" Orientation="Horizontal"
+                                        Visibility="Collapsed" Margin="4,0,-6,0">
+                                <Button Style="{StaticResource IconButton}" Width="24" Height="24" FontSize="11"
+                                        Content="&#xE70F;" Click="RenameGroup_Click" ToolTip="名前を変更 (F2)"/>
+                                <Button Style="{StaticResource DangerIconButton}" Width="24" Height="24" FontSize="11"
+                                        Content="&#xE74D;" Click="DeleteGroup_Click" ToolTip="グループを削除"/>
+                            </StackPanel>
+                        </Grid>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding FontWeight, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="SemiBold">
+                                <Setter TargetName="Icon" Property="Foreground" Value="{DynamicResource AccentTextBrush}"/>
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True"/>
+                                    <Condition Binding="{Binding IsUserGroup}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Actions" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="CountText" Property="Visibility" Value="Collapsed"/>
+                            </MultiDataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="名前を変更... (F2)" Click="RenameGroup_Click"/>
+                        <MenuItem Header="削除" Click="DeleteGroup_Click"/>
+                    </ContextMenu>
+                </ListBox.ContextMenu>
+            </ListBox>
+
+            <!-- グループが1つも無いときの案内(一覧の下の余白に出す) -->
+            <TextBlock x:Name="GroupHint" Grid.Row="2" VerticalAlignment="Bottom" Margin="20,0,16,12"
+                       Style="{StaticResource HelpText}" FontSize="11.5" LineHeight="17"
+                       Foreground="{DynamicResource TextFaint}" IsHitTestVisible="False"
+                       Text="＋ でグループを作ると、スニペットをドラッグして振り分けられます。"/>
+
+            <!-- 下端: 設定 + ピッカーの呼び出し方 -->
+            <StackPanel Grid.Row="3" Margin="10,0,8,12">
+                <Border Height="1" Background="{DynamicResource BorderSoft}" Margin="10,0,10,8"/>
+                <!-- スニペットページはグループを選べば戻るので、ボタンとしては見せない -->
+                <RadioButton x:Name="NavSnippets" GroupName="Page" IsChecked="True"
+                             Checked="Nav_Checked" Visibility="Collapsed"/>
+                <RadioButton x:Name="NavSettings" Style="{StaticResource NavItem}" GroupName="Page"
+                             Tag="&#xE713;" Content="設定" Checked="Nav_Checked"/>
+                <StackPanel Orientation="Horizontal" Margin="10,10,0,0">
+                    <Border Background="{DynamicResource CardBg}" CornerRadius="5" Padding="6,1"
+                            BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1">
+                        <TextBlock x:Name="HotkeyHintText" Foreground="{DynamicResource TextSub}"
+                                   FontSize="11" FontWeight="SemiBold"/>
+                    </Border>
+                    <TextBlock Text="でピッカー" Foreground="{DynamicResource TextFaint}" FontSize="11.5"
+                               VerticalAlignment="Center" Margin="7,0,0,0"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
 
-        <Border Grid.Row="1" Background="{DynamicResource BorderSoft}"/>
+        <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}"/>
 
-        <!-- ===== スニペットページ ===== -->
-        <Grid x:Name="SnippetsPanel" Grid.Row="2" Background="{DynamicResource ContentBg}">
+        <!-- ================= スニペットページ ================= -->
+        <Grid x:Name="SnippetsPanel" Grid.Column="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="204" MinWidth="150"/>
+                <ColumnDefinition Width="1*" MinWidth="280"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="1.15*" MinWidth="230"/>
-                <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="2.1*" MinWidth="330"/>
+                <ColumnDefinition Width="1.35*" MinWidth="360"/>
             </Grid.ColumnDefinitions>
 
-            <!-- グループ -->
-            <Grid Grid.Column="0">
+            <!-- 一覧 -->
+            <Grid Grid.Column="0" Background="{DynamicResource ContentBg}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="44"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="48"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="グループ" Style="{StaticResource PaneLabel}" Margin="18,0,0,0"/>
+                <!-- 見出し: 表示中のグループ名と件数 + 新規 -->
+                <Grid Grid.Row="0" Margin="20,0,12,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,40,0">
+                        <TextBlock Text="{Binding SelectedItem.Name, ElementName=GroupList}"
+                                   Foreground="{DynamicResource TextMain}" FontSize="15" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Items.Count, ElementName=SnippetList}"
+                                   Foreground="{DynamicResource TextFaint}" FontSize="12.5"
+                                   VerticalAlignment="Center" Margin="8,1,0,0"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource AccentIconButton}" Content="&#xE710;"
+                            HorizontalAlignment="Right" VerticalAlignment="Center"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            Click="New_Click" ToolTip="スニペットを新しく作る (Ctrl+N)"/>
+                </Grid>
 
-                <ListBox x:Name="GroupList" Grid.Row="1" BorderThickness="0" Background="Transparent"
-                         Margin="8,0,6,0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         SelectionChanged="GroupList_SelectionChanged"
-                         PreviewMouseRightButtonDown="GroupList_PreviewMouseRightButtonDown"
-                         ContextMenuOpening="GroupList_ContextMenuOpening">
+                <!-- 検索 -->
+                <Border Grid.Row="1" Margin="12,0,12,8" CornerRadius="8" Height="32"
+                        Background="{DynamicResource FieldBg}"
+                        BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1">
+                    <Grid Margin="10,0,4,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                   Foreground="{DynamicResource TextFaint}"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Grid Grid.Column="1">
+                            <TextBox x:Name="FilterBox" Style="{StaticResource PlainBox}" Padding="0" MinHeight="0"
+                                     TextChanged="FilterBox_TextChanged"
+                                     PreviewKeyDown="FilterBox_PreviewKeyDown"/>
+                            <TextBlock x:Name="FilterHint" Text="検索"
+                                       IsHitTestVisible="False" FontSize="13" Margin="2,0,0,0"
+                                       Foreground="{DynamicResource TextFaint}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                        <TextBlock Grid.Column="2" Text="Ctrl+F" FontSize="11" Margin="0,0,6,0"
+                                   Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Visibility="{Binding Visibility, ElementName=FilterHint}"/>
+                        <Button x:Name="ClearFilterButton" Grid.Column="2" Style="{StaticResource IconButton}"
+                                Content="&#xE711;" FontSize="10" Width="24" Height="24"
+                                Visibility="Collapsed" Click="ClearFilter_Click"
+                                ToolTip="検索をクリア"/>
+                    </Grid>
+                </Border>
+
+                <ListBox x:Name="SnippetList" Grid.Row="2" BorderThickness="0" Background="Transparent"
+                         Margin="8,0,4,8"
+                         VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                         VirtualizingPanel.ScrollUnit="Pixel"
+                         HorizontalContentAlignment="Stretch"
+                         SelectionChanged="SnippetList_SelectionChanged"
+                         PreviewMouseLeftButtonDown="SnippetList_PreviewMouseLeftButtonDown"
+                         PreviewMouseMove="SnippetList_PreviewMouseMove"
+                         PreviewMouseRightButtonDown="SnippetList_PreviewMouseRightButtonDown"
+                         ContextMenuOpening="SnippetList_ContextMenuOpening"
+                         KeyDown="SnippetList_KeyDown"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="10,7"/>
-                            <Setter Property="Margin" Value="0,1"/>
+                            <Setter Property="Padding" Value="12,9"/>
+                            <Setter Property="Margin" Value="0,1,4,1"/>
                             <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
@@ -121,251 +300,191 @@
                         </Style>
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
+                        <!-- 2段: 見出し + キーワード / 本文の抜粋。
+                             抜粋が空でも2段分の高さを取り、行の高さを揃える -->
                         <DataTemplate>
                             <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="20"/>
+                                    <RowDefinition Height="18"/>
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Name}" FontSize="13"
+                                <TextBlock Text="{Binding Title}" FontSize="13.5" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextMain}"
-                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="{Binding Count}" FontSize="11.5"
-                                           Foreground="{DynamicResource TextFaint}"
-                                           VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <!-- キーワードは等幅の小さな札にして、見出しと区別する -->
+                                <Border x:Name="KeywordTag" Grid.Column="1" Margin="10,0,0,0" CornerRadius="5"
+                                        Padding="6,0" Height="19" VerticalAlignment="Center"
+                                        Background="{DynamicResource FieldBg}"
+                                        BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1">
+                                    <TextBlock Text="{Binding Keyword}" MaxWidth="130"
+                                               FontFamily="Cascadia Code, Consolas" FontSize="11.5"
+                                               Foreground="{DynamicResource TextSub}"
+                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Subtitle}"
+                                           FontSize="12" Foreground="{DynamicResource TextFaint}"
+                                           VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis"/>
                             </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding HasKeyword}" Value="False">
+                                    <Setter TargetName="KeywordTag" Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
+                    <!-- 「すべて」を表示しているときはグループごとに見出しで区切る -->
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="12,14,16,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSub}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding ItemCount}" FontSize="11" Margin="6,0,10,0"
+                                                   Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center"/>
+                                        <Border Grid.Column="2" Height="1" Background="{DynamicResource BorderSoft}"
+                                                VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
+                    <!-- 中身は開くたびに作る(移動先のグループ一覧が変わるため) -->
                     <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="名前を変更..." Click="RenameGroup_Click"/>
-                            <MenuItem Header="削除" Click="DeleteGroup_Click"/>
-                        </ContextMenu>
-                    </ListBox.ContextMenu>
-                </ListBox>
-
-                <Button Grid.Row="2" Style="{StaticResource GhostRowButton}" Margin="8,4,6,10"
-                        Click="AddGroup_Click" ToolTip="グループを追加">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                   VerticalAlignment="Center" Margin="0,0,9,0"/>
-                        <TextBlock Text="グループを追加" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Button>
-            </Grid>
-
-            <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}"/>
-
-            <!-- 一覧 -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="44"/>
-                    <RowDefinition Height="1"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <!-- 検索 + 新規 -->
-                <Grid Grid.Row="0" Margin="14,0,8,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-
-                    <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13"
-                               Foreground="{DynamicResource TextFaint}"
-                               VerticalAlignment="Center" Margin="0,0,9,0"/>
-                    <Grid Grid.Column="1">
-                        <TextBox x:Name="FilterBox" Style="{StaticResource PlainBox}"
-                                 TextChanged="FilterBox_TextChanged"/>
-                        <TextBlock x:Name="FilterHint" Text="検索"
-                                   IsHitTestVisible="False" FontSize="13"
-                                   Foreground="{DynamicResource TextFaint}"
-                                   VerticalAlignment="Center"/>
-                    </Grid>
-                    <Button x:Name="ClearFilterButton" Grid.Column="2" Style="{StaticResource IconButton}"
-                            Content="&#xE711;" FontSize="10" Width="24" Height="24"
-                            Visibility="Collapsed" Click="ClearFilter_Click"
-                            ToolTip="検索をクリア"/>
-                    <Button Grid.Column="3" Style="{StaticResource AccentIconButton}" Content="&#xE710;"
-                            Margin="8,0,0,0" Click="New_Click" ToolTip="スニペットを新しく作る"/>
-                </Grid>
-
-                <Border Grid.Row="1" Background="{DynamicResource BorderSoft}"/>
-
-                <ListBox x:Name="SnippetList" Grid.Row="2" BorderThickness="0" Background="Transparent"
-                         Margin="8,6,6,6"
-                         HorizontalContentAlignment="Stretch"
-                         SelectionChanged="SnippetList_SelectionChanged"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="11,8"/>
-                            <Setter Property="Margin" Value="0,1"/>
-                            <Setter Property="Cursor" Value="Hand"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="3"/>
-                                                    <ColumnDefinition Width="*"/>
-                                                </Grid.ColumnDefinitions>
-                                                <Border x:Name="Marker" CornerRadius="2" Margin="0,8"
-                                                        Background="Transparent"/>
-                                                <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}"/>
-                                            </Grid>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverSoft}"/>
-                                            </Trigger>
-                                            <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-                                                <Setter TargetName="Marker" Property="Background" Value="{DynamicResource AccentBrush}"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <!-- キーワードが無いスニペット(BeefText からの取り込み等)ではチップを出さない。
-                                         MinWidth を揃えておくと右の名前の頭が縦に並んで読みやすい -->
-                                    <Border Background="{DynamicResource TealSoftBrush}" CornerRadius="5"
-                                            Padding="7,2" Margin="0,0,9,0" MinWidth="56">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding HasKeyword}" Value="False">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Keyword}" FontFamily="Cascadia Code, Consolas"
-                                                   FontSize="11.5" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TealTextBrush}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </Border>
-                                    <TextBlock Grid.Column="1" Text="{Binding Label}"
-                                               Foreground="{DynamicResource TextMain}"
-                                               FontSize="13" VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </Grid>
-                                <TextBlock Text="{Binding Preview}" FontSize="11.5"
-                                           Foreground="{DynamicResource TextFaint}"
-                                           TextTrimming="CharacterEllipsis" Margin="1,4,0,0"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="複製" Click="Duplicate_Click"/>
-                            <MenuItem Header="削除" Click="Delete_Click"/>
-                        </ContextMenu>
+                        <ContextMenu/>
                     </ListBox.ContextMenu>
                 </ListBox>
 
                 <!-- 空の状態 -->
                 <StackPanel x:Name="ListEmptyPanel" Grid.Row="2" Visibility="Collapsed"
-                            VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20,0,20,24">
-                    <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="24"
-                               Foreground="{DynamicResource BorderStrong}" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="ListEmptyText" Margin="0,12,0,0" TextAlignment="Center"
-                               Style="{StaticResource HelpText}"
-                               Foreground="{DynamicResource TextFaint}"/>
+                            VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24,0,24,40">
+                    <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource HoverSoft}"
+                            HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                   Foreground="{DynamicResource TextFaint}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="ListEmptyText" Margin="0,14,0,0" TextAlignment="Center"
+                               Style="{StaticResource HelpText}"/>
                 </StackPanel>
             </Grid>
 
-            <GridSplitter Grid.Column="3" Style="{StaticResource PaneSplitter}"/>
+            <GridSplitter Grid.Column="1" Style="{StaticResource PaneSplitter}"/>
 
             <!-- エディタ -->
-            <Grid Grid.Column="4" Background="{DynamicResource CardBg}">
+            <Grid Grid.Column="2" Background="{DynamicResource CardBg}">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="44"/>
-                    <RowDefinition Height="1"/>
+                    <!-- 上端はキャプション(右上にウィンドウのボタンが重なる) -->
+                    <RowDefinition Height="40"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="36"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0" Margin="20,0,8,0">
-                    <TextBlock Text="スニペットの編集" Style="{StaticResource PaneLabel}"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                        <Button x:Name="DuplicateButton" Style="{StaticResource IconButton}" Content="&#xE8C8;"
-                                Click="Duplicate_Click" ToolTip="このスニペットを複製する"/>
-                        <Button x:Name="DeleteButton" Style="{StaticResource DangerIconButton}" Content="&#xE74D;"
-                                Click="Delete_Click" ToolTip="このスニペットを削除する"/>
-                    </StackPanel>
-                </Grid>
-
-                <Border Grid.Row="1" Background="{DynamicResource BorderSoft}"/>
-
-                <Grid Grid.Row="2">
-                    <Grid x:Name="EditorPanel" Margin="20,18,20,18">
+                <Grid Grid.Row="1">
+                    <Grid x:Name="EditorPanel" Margin="32,8,32,20">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- キーワード / グループ -->
-                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                        <!-- 名前(ドキュメントのタイトルのように大きく) + 操作 -->
+                        <Grid x:Name="EditorHeader" Grid.Row="0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="14"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="キーワード" Style="{StaticResource FieldLabel}"/>
-                                <TextBox x:Name="KeywordBox" Style="{StaticResource InputBox}"
-                                         FontFamily="Cascadia Code, Consolas"
-                                         FontWeight="SemiBold"
-                                         Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="このキーワードを入力すると本文に置き換わります(例: ;addr)"/>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="グループ" Style="{StaticResource FieldLabel}"/>
-                                <ComboBox x:Name="GroupComboBox" Style="{StaticResource InputCombo}"
-                                          SelectedValuePath="Id"
-                                          SelectedValue="{Binding GroupId, UpdateSourceTrigger=PropertyChanged}"
-                                          ToolTip="このスニペットが属するグループ">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                            <Grid>
+                                <TextBox x:Name="LabelBox" Style="{StaticResource TitleBox}"
+                                         Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="LabelBox_TextChanged"
+                                         ToolTip="一覧やピッカーに表示される名前(空欄なら本文の1行目)"/>
+                                <!-- 名前が空のときは、代わりに表示される見出しを薄く見せる -->
+                                <TextBlock x:Name="LabelHint" Text="{Binding Title}"
+                                           IsHitTestVisible="False" FontSize="20" FontWeight="SemiBold"
+                                           Margin="2,0,0,0" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center"/>
+                            </Grid>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,-6,0">
+                                <Button x:Name="DuplicateButton" Style="{StaticResource IconButton}" Content="&#xE8C8;"
+                                        Width="32" Height="32" FontSize="13"
+                                        Click="Duplicate_Click" ToolTip="複製 (Ctrl+D)"/>
+                                <Button x:Name="DeleteButton" Style="{StaticResource DangerIconButton}" Content="&#xE74D;"
+                                        Width="32" Height="32" FontSize="13"
+                                        Click="Delete_Click" ToolTip="削除 (一覧で Delete)"/>
                             </StackPanel>
                         </Grid>
 
-                        <!-- 名前 -->
-                        <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                            <TextBlock Text="名前(任意)" Style="{StaticResource FieldLabel}"/>
-                            <TextBox Style="{StaticResource InputBox}"
-                                     Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="一覧やピッカーに表示される名前"/>
-                        </StackPanel>
+                        <!-- プロパティ: ラベルを左、値を右に並べる -->
+                        <Grid Grid.Row="1" Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="*" MaxWidth="340"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,8,0,0">
+                                <TextBlock Text="&#xE765;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                           Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="キーワード" Style="{StaticResource PropertyLabel}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1">
+                                <TextBox x:Name="KeywordBox" Style="{StaticResource InputBox}"
+                                         FontFamily="Cascadia Code, Consolas"
+                                         FontWeight="SemiBold" FontSize="13"
+                                         Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="KeywordBox_TextChanged"
+                                         ToolTip="このキーワードを入力すると本文に置き換わります(例: ;addr)"/>
+                                <TextBlock x:Name="KeywordNote" FontSize="11.5" Margin="2,5,0,0"
+                                           TextWrapping="Wrap" Visibility="Collapsed"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,8,0,0">
+                                <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                           Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="グループ" Style="{StaticResource PropertyLabel}"/>
+                            </StackPanel>
+                            <ComboBox x:Name="GroupComboBox" Grid.Row="2" Grid.Column="1"
+                                      Style="{StaticResource InputCombo}" FontSize="13"
+                                      DropDownClosed="GroupComboBox_DropDownClosed"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding GroupId, UpdateSourceTrigger=PropertyChanged}"
+                                      ToolTip="このスニペットが属するグループ">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+
+                        <Border Grid.Row="2" Height="1" Background="{DynamicResource BorderSoft}" Margin="0,20,0,14"/>
 
                         <!-- 本文の見出し + 変数チップ -->
-                        <Grid Grid.Row="2" Margin="0,0,0,6">
+                        <Grid Grid.Row="3" Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="本文" Style="{StaticResource FieldLabel}"
-                                       Margin="2,0,10,0" VerticalAlignment="Bottom"/>
+                            <TextBlock Text="本文" Style="{StaticResource PropertyLabel}"/>
                             <WrapPanel Grid.Column="1" HorizontalAlignment="Right" Orientation="Horizontal">
+                                <TextBlock Text="挿入" FontSize="11.5" Foreground="{DynamicResource TextFaint}"
+                                           VerticalAlignment="Center" Margin="0,0,4,0"/>
                                 <Button Content="{}{date}" Style="{StaticResource ChipButton}"
                                         Click="InsertVariable_Click" Tag="{}{date}"
                                         ToolTip="今日の日付 (書式指定: {date:yyyy-MM-dd})"/>
@@ -381,159 +500,191 @@
                             </WrapPanel>
                         </Grid>
 
-                        <TextBox x:Name="ContentBox" Grid.Row="3" Style="{StaticResource InputBox}"
+                        <TextBox x:Name="ContentBox" Grid.Row="4" Style="{StaticResource InputBox}"
                                  Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
                                  AcceptsReturn="True" AcceptsTab="True"
-                                 FontFamily="Cascadia Code, Consolas, Meiryo"
-                                 Padding="13,10"
+                                 FontFamily="Cascadia Code, Consolas, Meiryo" FontSize="13"
+                                 Padding="14,12"
                                  VerticalScrollBarVisibility="Auto"
                                  VerticalContentAlignment="Top"/>
                     </Grid>
 
                     <!-- 未選択時のプレースホルダ -->
                     <StackPanel x:Name="EditorPlaceholder" Visibility="Collapsed"
-                                VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24">
-                        <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="26"
-                                   Foreground="{DynamicResource BorderStrong}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="編集するスニペットを選んでください"
-                                   Margin="0,14,0,0" FontSize="13.5" TextAlignment="Center"
-                                   Foreground="{DynamicResource TextSub}"/>
-                        <TextBlock Text="右上の ＋ から新しく作れます"
-                                   Margin="0,5,0,0" FontSize="12.5" TextAlignment="Center"
+                                VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24,0,24,60">
+                        <Border Width="52" Height="52" CornerRadius="14" Background="{DynamicResource AccentSoftBrush}"
+                                HorizontalAlignment="Center">
+                            <TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                       Foreground="{DynamicResource AccentTextBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="スニペットを選んでください"
+                                   Margin="0,16,0,0" FontSize="14" FontWeight="SemiBold" TextAlignment="Center"
+                                   Foreground="{DynamicResource TextMain}"/>
+                        <TextBlock Text="新しく作るには ＋ か Ctrl+N"
+                                   Margin="0,6,0,0" FontSize="12.5" TextAlignment="Center"
                                    Foreground="{DynamicResource TextFaint}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 下端: 一時的な通知と保存状態 -->
+                <Grid Grid.Row="2" Margin="32,0,20,0">
+                    <Border Height="1" VerticalAlignment="Top" Background="{DynamicResource BorderSoft}" Margin="0,0,12,0"/>
+                    <TextBlock x:Name="StatusText" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSub}" FontSize="11.5"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,180,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse Width="6" Height="6" Fill="{DynamicResource TealBrush}"
+                                 VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock x:Name="SaveIndicator" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFaint}" FontSize="11.5"
+                                   Text="変更は自動保存されます"/>
                     </StackPanel>
                 </Grid>
             </Grid>
         </Grid>
 
-        <!-- ===== 設定ページ ===== -->
-        <ScrollViewer x:Name="SettingsPanel" Grid.Row="2" Visibility="Collapsed"
-                      Background="{DynamicResource ChromeBg}"
-                      Padding="0,0,4,0"
-                      VerticalScrollBarVisibility="Auto">
-            <StackPanel MaxWidth="700" HorizontalAlignment="Left" Margin="28,22,28,28">
+        <!-- ================= 設定ページ ================= -->
+        <!-- 1行 = 左に見出しと説明、右に操作。関連する行を1枚のカードにまとめる -->
+        <Grid x:Name="SettingsPanel" Grid.Column="2" Visibility="Collapsed"
+              Background="{DynamicResource ContentBg}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                <!-- 外観 -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="外観" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,14"
-                                   Text="設定画面とピッカーの配色を切り替えます。"/>
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="ThemeSystemRadio" GroupName="Theme" Content="システムに従う"
-                                         Checked="Theme_Changed"/>
-                            <RadioButton x:Name="ThemeLightRadio" GroupName="Theme" Content="ライト"
-                                         Checked="Theme_Changed"/>
-                            <RadioButton x:Name="ThemeDarkRadio" GroupName="Theme" Content="ダーク"
-                                         Checked="Theme_Changed" Margin="0"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+            <TextBlock Grid.Row="0" Text="設定" Foreground="{DynamicResource TextMain}"
+                       FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,0,0"/>
 
-                <!-- ホットキー -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="&#xEDA7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="ピッカーの呼び出しホットキー" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,14"
-                                   Text="下の欄をクリックして、使いたいキーの組み合わせを押してください(修飾キー必須)。"/>
-                        <TextBox x:Name="HotkeyBox" Style="{StaticResource InputBox}" Width="260"
-                                 HorizontalAlignment="Left" MinHeight="40"
-                                 IsReadOnly="True" IsReadOnlyCaretVisible="False" Cursor="Hand"
-                                 PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                                 PreviewMouseLeftButtonDown="HotkeyBox_PreviewMouseLeftButtonDown"
-                                 LostKeyboardFocus="HotkeyBox_LostKeyboardFocus"
-                                 TextAlignment="Center"
-                                 FontSize="13.5" FontWeight="SemiBold"/>
-                        <TextBlock x:Name="HotkeyStatus" Foreground="{DynamicResource TextFaint}" FontSize="12"
-                                   Margin="2,9,0,0" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
+            <ScrollViewer Grid.Row="1" Padding="0,0,4,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel MaxWidth="720" Margin="32,12,32,32">
 
-                <!-- 自動展開 -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                            <TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="自動展開" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <CheckBox x:Name="AutoExpandCheck" Content="キーワードを入力したら自動で展開する(BeefText方式)"
-                                  Checked="AutoExpand_Changed" Unchecked="AutoExpand_Changed"/>
-                        <TextBlock Style="{StaticResource HelpText}" Margin="28,9,0,0"
-                                   Text="どのアプリでも、キーワード(例: ;date)を打ち終わった瞬間に本文へ置き換わります。&#x0a;※ 半角の直接入力が対象です。IME で変換中の文字列からは展開されません。&#x0a;※ 誤爆を防ぐため、キーワードの先頭に「;」などの記号を付けるのがおすすめです。"/>
-                    </StackPanel>
-                </Border>
+                    <!-- 全般 -->
+                    <TextBlock Text="全般" Style="{StaticResource SettingsSection}"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,28">
+                        <StackPanel>
+                            <Grid Margin="20,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="外観" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Style="{StaticResource HelpText}" Text="設定画面とピッカーの配色"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <RadioButton x:Name="ThemeSystemRadio" GroupName="Theme" Content="システムに従う"
+                                                 Checked="Theme_Changed"/>
+                                    <RadioButton x:Name="ThemeLightRadio" GroupName="Theme" Content="ライト"
+                                                 Checked="Theme_Changed"/>
+                                    <RadioButton x:Name="ThemeDarkRadio" GroupName="Theme" Content="ダーク"
+                                                 Checked="Theme_Changed" Margin="0"/>
+                                </StackPanel>
+                            </Grid>
 
-                <!-- 起動 -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                            <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="起動" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <CheckBox x:Name="StartupCheck" Content="Windows 起動時に Znip を自動で起動する"
-                                  Checked="Startup_Changed" Unchecked="Startup_Changed"/>
-                    </StackPanel>
-                </Border>
+                            <Border Height="1" Background="{DynamicResource BorderSoft}" Margin="20,0"/>
 
-                <!-- 移行 -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="BeefText からの移行" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource HelpText}" Margin="0,0,0,14"
-                                   Text="BeefText の comboList.json を指定して、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。&#x0a;キーワードが重複するスニペットはスキップされます。キーワードが無いスニペットも取り込み、ピッカーから選んで使えます。&#x0a;未編集の既定スニペットが残っている場合は、置き換えるかどうかを確認します。"/>
-                        <Button Content="ファイルを選んでインポート..." Style="{StaticResource ToolButton}"
-                                HorizontalAlignment="Left" Margin="0" Click="ImportBeefText_Click"/>
-                    </StackPanel>
-                </Border>
+                            <Grid Margin="20,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="キーワードで自動展開" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Style="{StaticResource HelpText}"
+                                               Text="どのアプリでも、キーワード(例: ;date)を打ち終わった瞬間に本文へ置き換えます。"/>
+                                    <TextBlock Style="{StaticResource HelpText}" Foreground="{DynamicResource TextFaint}"
+                                               FontSize="12" Margin="0,4,0,0"
+                                               Text="半角の直接入力が対象です(IME で変換中の文字列からは展開されません)。誤爆を防ぐため、キーワードの先頭に「;」などの記号を付けるのがおすすめです。"/>
+                                </StackPanel>
+                                <CheckBox x:Name="AutoExpandCheck" Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                          VerticalAlignment="Center"
+                                          Checked="AutoExpand_Changed" Unchecked="AutoExpand_Changed"
+                                          ToolTip="キーワードで自動展開"/>
+                            </Grid>
 
-                <!-- データ -->
-                <Border Style="{StaticResource Card}" Padding="20" Margin="0,0,0,12">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="データ" Style="{StaticResource SectionTitle}"/>
-                        </StackPanel>
-                        <Border Background="{DynamicResource FieldBg}" CornerRadius="8" Padding="11,8"
-                                BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1"
-                                Margin="0,0,0,14">
-                            <TextBlock x:Name="DataPathText" Foreground="{DynamicResource TextSub}" FontSize="11.5"
-                                       FontFamily="Cascadia Code, Consolas" TextWrapping="Wrap"/>
-                        </Border>
-                        <Button Content="データフォルダを開く" Style="{StaticResource ToolButton}"
-                                HorizontalAlignment="Left" Margin="0" Click="OpenDataFolder_Click"/>
-                    </StackPanel>
-                </Border>
+                            <Border Height="1" Background="{DynamicResource BorderSoft}" Margin="20,0"/>
 
-                <!-- 変数一覧 -->
-                <Border Style="{StaticResource Card}" Padding="20">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <TextBlock Text="&#xE943;" FontFamily="Segoe MDL2 Assets" FontSize="14"
-                                       Foreground="{DynamicResource AccentTextBrush}" VerticalAlignment="Center"
-                                       Margin="0,0,10,0"/>
-                            <TextBlock Text="使える変数" Style="{StaticResource SectionTitle}"/>
+                            <Grid Margin="20,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="Windows の起動時に Znip を起動" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Style="{StaticResource HelpText}" Text="トレイに常駐した状態で起動します"/>
+                                </StackPanel>
+                                <CheckBox x:Name="StartupCheck" Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                          VerticalAlignment="Center"
+                                          Checked="Startup_Changed" Unchecked="Startup_Changed"
+                                          ToolTip="Windows の起動時に Znip を起動"/>
+                            </Grid>
                         </StackPanel>
+                    </Border>
+
+                    <!-- ピッカー -->
+                    <TextBlock Text="ピッカー" Style="{StaticResource SettingsSection}"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,28">
+                        <Grid Margin="20,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                <TextBlock Text="呼び出しホットキー" Style="{StaticResource SettingTitle}"/>
+                                <TextBlock x:Name="HotkeyStatus" Style="{StaticResource HelpText}"/>
+                            </StackPanel>
+                            <TextBox x:Name="HotkeyBox" Grid.Column="1" Style="{StaticResource InputBox}" Width="200"
+                                     VerticalAlignment="Center" MinHeight="36"
+                                     IsReadOnly="True" IsReadOnlyCaretVisible="False" Cursor="Hand"
+                                     PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                                     PreviewMouseLeftButtonDown="HotkeyBox_PreviewMouseLeftButtonDown"
+                                     LostKeyboardFocus="HotkeyBox_LostKeyboardFocus"
+                                     TextAlignment="Center"
+                                     FontSize="13.5" FontWeight="SemiBold"
+                                     ToolTip="クリックしてからキーを押すと変更できます"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- データ -->
+                    <TextBlock Text="データ" Style="{StaticResource SettingsSection}"/>
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,28">
+                        <StackPanel>
+                            <Grid Margin="20,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="保存場所" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock x:Name="DataPathText" Foreground="{DynamicResource TextSub}" FontSize="12"
+                                               FontFamily="Cascadia Code, Consolas" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="フォルダを開く" Style="{StaticResource ToolButton}"
+                                        VerticalAlignment="Center" Margin="0" Click="OpenDataFolder_Click"/>
+                            </Grid>
+
+                            <Border Height="1" Background="{DynamicResource BorderSoft}" Margin="20,0"/>
+
+                            <Grid Margin="20,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="BeefText から取り込む" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Style="{StaticResource HelpText}"
+                                               Text="comboList.json を選ぶと、スニペットと設定(自動展開・起動時実行・ホットキー)を取り込みます。キーワードが重複するものはスキップします。"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="ファイルを選ぶ..." Style="{StaticResource ToolButton}"
+                                        VerticalAlignment="Center" Margin="0" Click="ImportBeefText_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 変数一覧 -->
+                    <TextBlock Text="本文で使える変数" Style="{StaticResource SettingsSection}"/>
+                    <Border Style="{StaticResource Card}" Padding="20,16,20,8">
                         <ItemsControl x:Name="VariableList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -555,31 +706,21 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
-
-        <Border Grid.Row="3" Background="{DynamicResource BorderSoft}"/>
-
-        <!-- ===== ステータスバー ===== -->
-        <Grid Grid.Row="4" Background="{DynamicResource ChromeBg}">
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="16,0,0,0"
-                       Foreground="{DynamicResource TextSub}" FontSize="11.5"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Margin="0,0,16,0">
-                <Border Background="{DynamicResource FieldBg}" CornerRadius="5" Padding="7,1"
-                        BorderBrush="{DynamicResource BorderSoft}" BorderThickness="1">
-                    <TextBlock x:Name="HotkeyHintText" Foreground="{DynamicResource TextSub}"
-                               FontSize="11" FontWeight="SemiBold"/>
-                </Border>
-                <TextBlock Text="でピッカーを開く" Foreground="{DynamicResource TextFaint}" FontSize="11.5"
-                           VerticalAlignment="Center" Margin="7,0,0,0"/>
-                <Border Width="1" Height="12" Background="{DynamicResource BorderSoft}" Margin="14,0"/>
-                <TextBlock x:Name="SaveIndicator" VerticalAlignment="Center"
-                           Foreground="{DynamicResource TextFaint}" FontSize="11.5"
-                           Text="変更は自動保存されます"/>
-            </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
+
+        <!-- ================= ウィンドウのボタン(右上に重ねる) ================= -->
+        <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Panel.ZIndex="10"
+                    Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <Button Style="{StaticResource ChromeButton}" Content="&#xE921;" Click="Minimize_Click"
+                    ToolTip="最小化" WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <Button x:Name="MaximizeButton" Style="{StaticResource ChromeButton}" Content="&#xE922;"
+                    Click="Maximize_Click" ToolTip="最大化"
+                    WindowChrome.IsHitTestVisibleInChrome="True"/>
+            <Button Style="{StaticResource ChromeCloseButton}" Content="&#xE8BB;" Click="CloseButton_Click"
+                    ToolTip="閉じる(トレイに常駐します)" WindowChrome.IsHitTestVisibleInChrome="True"/>
+        </StackPanel>
     </Grid>
 </Window>

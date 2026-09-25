@@ -7,6 +7,8 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False"
         FontFamily="Segoe UI Variable Text, Segoe UI, Yu Gothic UI"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
         PreviewKeyDown="Window_PreviewKeyDown">
     <Border Background="{DynamicResource CardBg}" CornerRadius="14" Margin="14"
