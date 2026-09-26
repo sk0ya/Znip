@@ -44,6 +44,13 @@ public partial class PickerWindow : Window
         Close();
     }
 
+    private void DragHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        e.Handled = true;
+        DragMove();
+    }
+
     private void PositionNearCursor()
     {
         var cursor = System.Windows.Forms.Cursor.Position;

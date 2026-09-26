@@ -94,7 +94,9 @@
             </Grid.RowDefinitions>
 
             <!-- 検索欄 -->
-            <Grid Grid.Row="0" Margin="6,4,6,0">
+            <Border Grid.Row="0" Background="Transparent" Padding="6,4,6,0"
+                    MouseLeftButtonDown="DragHandle_MouseLeftButtonDown">
+            <Grid Background="Transparent">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -107,7 +109,7 @@
                              Foreground="{DynamicResource PickerText}"
                              CaretBrush="{DynamicResource AccentBrush}"
                              SelectionBrush="{DynamicResource AccentBrush}"
-                             FontSize="16" Padding="0,12"
+                             FontSize="16" Padding="0" Margin="0,12"
                              VerticalContentAlignment="Center"
                              TextChanged="SearchBox_TextChanged"/>
                     <TextBlock x:Name="SearchHint" Text="スニペットを検索…"
@@ -116,6 +118,7 @@
                                Foreground="{DynamicResource PickerSub}"/>
                 </Grid>
             </Grid>
+            </Border>
 
             <Border Grid.Row="1" Height="1" Background="{DynamicResource PickerBorder}" Margin="-8,4,-8,6"/>
 
