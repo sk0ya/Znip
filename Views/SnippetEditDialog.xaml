@@ -1,0 +1,66 @@
+<Window x:Class="Znip.Views.SnippetEditDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="スニペットの編集" Width="660" Height="650" MinWidth="520" MinHeight="560"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource CardBg}" Foreground="{DynamicResource TextMain}"
+        FontFamily="Segoe UI, Yu Gothic UI" FontSize="14" UseLayoutRounding="True"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="名前" Margin="0,0,0,6"/>
+        <TextBox x:Name="NameBox" Grid.Row="1" Style="{StaticResource InputBox}" MinHeight="36"
+                 AutomationProperties.Name="名前"/>
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="キーワード（任意）" Margin="0,0,0,6"/>
+                <TextBox x:Name="KeywordBox" Style="{StaticResource InputBox}" MinHeight="36" AutomationProperties.Name="キーワード"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="グループ" Margin="0,0,0,6"/>
+                <ComboBox x:Name="GroupBox" Style="{StaticResource InputCombo}" MinHeight="36"
+                          AutomationProperties.Name="グループ">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </Grid>
+        <TextBlock Grid.Row="3" Text="キーワードを入力すると、本文に自動で置き換わります。空欄ならピッカーから使えます。"
+                   Foreground="{DynamicResource TextSub}" FontSize="12" TextWrapping="Wrap" Margin="0,8,0,16"/>
+        <Grid Grid.Row="4" Margin="0,0,0,8">
+            <TextBlock Text="本文" VerticalAlignment="Center"/>
+            <Button Content="変数を挿入 ▾" HorizontalAlignment="Right" Margin="0"
+                    Style="{StaticResource ToolButton}" Click="Variables_Click" Focusable="False">
+                <Button.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="今日の日付" Tag="{}{date}" Click="InsertVariable_Click"/>
+                        <MenuItem Header="現在の時刻" Tag="{}{time}" Click="InsertVariable_Click"/>
+                        <MenuItem Header="クリップボードの内容" Tag="{}{clipboard}" Click="InsertVariable_Click"/>
+                        <MenuItem Header="貼り付け後のカーソル位置" Tag="{}{cursor}" Click="InsertVariable_Click"/>
+                    </ContextMenu>
+                </Button.ContextMenu>
+            </Button>
+        </Grid>
+        <TextBox x:Name="BodyBox" Grid.Row="5" Style="{StaticResource InputBox}" AcceptsReturn="True"
+                 AcceptsTab="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 VerticalContentAlignment="Top" Padding="12" FontSize="14" AutomationProperties.Name="本文"/>
+        <TextBlock x:Name="ErrorText" Grid.Row="6" Visibility="Collapsed" TextWrapping="Wrap"
+                   Foreground="{DynamicResource DangerTextBrush}" Margin="0,10,0,0"/>
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="キャンセル" IsCancel="True" MinWidth="96" Style="{StaticResource ToolButton}"/>
+            <Button Content="保存" MinWidth="96" Style="{StaticResource PrimaryButton}" Margin="0"
+                    Click="Save_Click" ToolTip="Ctrl+S"/>
+        </StackPanel>
+    </Grid>
+</Window>

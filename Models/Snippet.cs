@@ -53,23 +53,6 @@ public class Snippet : INotifyPropertyChanged
     /// <summary>ピッカーで最後に使った日時。検索語が空のときに最近使った順で並べるのに使う</summary>
     public DateTime? LastUsed { get; set; }
 
-    /// <summary>
-    /// 名前として意味のある文字列を持つか。BeefText から取り込んだものは名前にキーワードと同じ文字列が
-    /// 入っていることが多く、それを見出しにするとキーワードが二重に並ぶだけなので名前なし扱いにする
-    /// </summary>
-    private bool HasMeaningfulLabel
-    {
-        get
-        {
-            var label = Label.Trim();
-            if (label.Length == 0) return false;
-            var keyword = Keyword.Trim();
-            // 「;ad」に対する「ad」のように、先頭の記号を除いただけのものも同じとみなす
-            return !string.Equals(label, keyword, StringComparison.OrdinalIgnoreCase) &&
-                   !string.Equals(label, keyword.TrimStart(KeywordSymbols), StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
     private static readonly char[] KeywordSymbols = ";:/\\.,!#$%&*+-=?@^_`|~'\"".ToCharArray();
 
     /// <summary>一覧の見出し。名前が空なら本文の1行目、それも空ならキーワード</summary>
@@ -78,7 +61,7 @@ public class Snippet : INotifyPropertyChanged
     {
         get
         {
-            if (HasMeaningfulLabel) return Label.Trim();
+            if (!string.IsNullOrWhiteSpace(Label)) return Label.Trim();
             var first = Lines(Content).FirstOrDefault() ?? "";
             if (first.Length > 0) return first.Length > 60 ? first[..60] + "…" : first;
             return HasKeyword ? Keyword : "(無題)";
@@ -87,7 +70,7 @@ public class Snippet : INotifyPropertyChanged
 
     /// <summary>見出しの下に出す本文の抜粋。見出しに本文の1行目を使ったときは2行目以降だけにして重複させない</summary>
     [JsonIgnore]
-    public string Subtitle => HasMeaningfulLabel ? Preview : OneLine(Lines(Content).Skip(1));
+    public string Subtitle => !string.IsNullOrWhiteSpace(Label) ? Preview : OneLine(Lines(Content).Skip(1));
 
     /// <summary>
     /// 一覧の並び順。キーワードを持つものを先に、先頭の記号を除いたキーワード順で並べ、

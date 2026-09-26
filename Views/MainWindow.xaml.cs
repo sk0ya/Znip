@@ -57,12 +57,6 @@ public partial class MainWindow : Window
     /// <summary>設定ページの変数一覧の1行</summary>
     private sealed record VariableRow(string Name, string Description);
 
-    private sealed class GroupOption
-    {
-        public Guid? Id { get; init; }
-        public string Name { get; init; } = "";
-    }
-
     public MainWindow()
     {
         InitializeComponent();
@@ -83,20 +77,13 @@ public partial class MainWindow : Window
     {
         _view = CollectionViewSource.GetDefaultView(Store.Items);
         _view.Filter = FilterSnippet;
-        // グループ順 → キーワード順(キーワード無しは後ろに見出し順)。「すべて」で見出しを付けたとき
-        // グループがまとまって並ぶよう、グループ名を第1キーにする。
-        // 編集中に行が跳ねないよう、並べ直すのは検索やグループ切り替えで Refresh したときだけ
+        // 所属グループにかかわらず、キーワード順（キーワードなしは名前順）で並べる。
         if (_view is ListCollectionView lcv)
             lcv.CustomSort = Comparer<object>.Create((a, b) =>
-            {
-                var x = (Snippet)a; var y = (Snippet)b;
-                int byGroup = CompareGroupNames(GroupNameOf(x.GroupId), GroupNameOf(y.GroupId));
-                return byGroup != 0 ? byGroup : string.Compare(x.SortKey, y.SortKey, StringComparison.CurrentCultureIgnoreCase);
-            });
+                string.Compare(((Snippet)a).SortKey, ((Snippet)b).SortKey, StringComparison.CurrentCultureIgnoreCase));
         SnippetList.ItemsSource = _view;
 
         RefreshGroupFilterItems();
-        RefreshGroupComboOptions();
 
         if (SnippetList.Items.Count > 0)
             SnippetList.SelectedIndex = 0;
@@ -165,7 +152,7 @@ public partial class MainWindow : Window
     private void UpdateStatus()
     {
         StatusText.Text = ""; // 件数は一覧の見出しに出しているので、ここは移動などの一時的な通知だけに使う
-        SaveIndicator.Text = "変更は自動保存されます";
+        SaveIndicator.Text = "ダブルクリックまたは Enter で編集";
     }
 
     /// <summary>空状態の切り替えとグループの件数更新</summary>
@@ -177,7 +164,7 @@ public partial class MainWindow : Window
         bool searching = FilterBox.Text.Trim().Length > 0;
         ListEmptyPanel.Visibility = shown == 0 ? Visibility.Visible : Visibility.Collapsed;
         ListEmptyText.Text = Store.Items.Count == 0
-            ? "まだスニペットがありません。\n上の ＋ から作ってみてください。"
+            ? "まだスニペットがありません。\n「新規作成」から追加できます。"
             : searching
                 ? "検索に一致するスニペットがありません。"
                 : "このグループにはスニペットがありません。";
@@ -241,66 +228,15 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RefreshGroupComboOptions()
-    {
-        var items = new List<GroupOption> { new() { Id = null, Name = "(未分類)" } };
-        items.AddRange(Store.Groups
-            .OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(g => new GroupOption { Id = g.Id, Name = g.Name }));
-        GroupComboBox.ItemsSource = items;
-    }
-
     private const string UngroupedName = "未分類";
 
     private string GroupNameOf(Guid? groupId) =>
         groupId is Guid id ? Store.Groups.FirstOrDefault(g => g.Id == id)?.Name ?? UngroupedName : UngroupedName;
 
-    /// <summary>グループ名の並び順。「未分類」は常に最後</summary>
-    private static int CompareGroupNames(string a, string b)
-    {
-        if (a == b) return 0;
-        if (a == UngroupedName) return 1;
-        if (b == UngroupedName) return -1;
-        return string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
-    }
-
-    /// <summary>GroupId → グループ名。一覧をグループの見出しで区切るのに使う</summary>
-    private sealed class GroupNameConverter(MainWindow owner) : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
-            owner.GroupNameOf(value as Guid?);
-
-        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
-            throw new NotSupportedException();
-    }
-
     private void GroupList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         _selectedGroupFilter = GroupList.SelectedItem as GroupFilterItem;
-        if (_view != null)
-        {
-            // 「すべて」のときだけグループの見出しで区切る(1つのグループを表示中は見出しが1つになるだけなので付けない)
-            bool showAll = _selectedGroupFilter is { Group: null, IsUngroupedFilter: false };
-            using (_view.DeferRefresh())
-            {
-                _view.GroupDescriptions.Clear();
-                if (showAll)
-                    _view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(Snippet.GroupId), new GroupNameConverter(this)));
-            }
-        }
-        UpdateListChrome();
-    }
-
-    /// <summary>エディタでグループを変えたら、一覧の並び(見出し)を付け直す</summary>
-    private void GroupComboBox_DropDownClosed(object? sender, EventArgs e)
-    {
-        if (SnippetList.SelectedItem is not Snippet snippet) return;
-        _view.Refresh();
-        if (SnippetList.Items.Contains(snippet))
-        {
-            SnippetList.SelectedItem = snippet;
-            SnippetList.ScrollIntoView(snippet);
-        }
+        _view?.Refresh();
         UpdateListChrome();
     }
 
@@ -314,7 +250,6 @@ public partial class MainWindow : Window
         var group = new SnippetGroup { Name = name };
         Store.Groups.Add(group);
         RefreshGroupFilterItems();
-        RefreshGroupComboOptions();
 
         var items = (List<GroupFilterItem>)GroupList.ItemsSource;
         GroupList.SelectedItem = items.FirstOrDefault(i => i.Group?.Id == group.Id);
@@ -337,7 +272,6 @@ public partial class MainWindow : Window
 
         group.Name = name;
         RefreshGroupFilterItems();
-        RefreshGroupComboOptions();
     }
 
     private void DeleteGroup_Click(object sender, RoutedEventArgs e)
@@ -349,7 +283,6 @@ public partial class MainWindow : Window
 
         Store.RemoveGroup(group);
         RefreshGroupFilterItems();
-        RefreshGroupComboOptions();
         _view.Refresh();
         UpdateListChrome();
     }
@@ -465,6 +398,7 @@ public partial class MainWindow : Window
         }
 
         menu.Items.Clear();
+        menu.Items.Add(MakeMenuItem("編集 (Enter)", Edit_Click));
         menu.Items.Add(MakeMenuItem("複製 (Ctrl+D)", Duplicate_Click));
         menu.Items.Add(MakeMenuItem("削除 (Delete)", Delete_Click));
         menu.Items.Add(new Separator());
@@ -493,6 +427,7 @@ public partial class MainWindow : Window
     private void SnippetList_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Delete) { Delete_Click(SnippetList, e); e.Handled = true; }
+        else if (e.Key == Key.Enter) { Edit_Click(sender, e); e.Handled = true; }
     }
 
     private void FilterBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -577,94 +512,66 @@ public partial class MainWindow : Window
 
     private void SnippetList_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateEditor();
 
-    /// <summary>選択の有無に応じてエディタ / プレースホルダを切り替える</summary>
     private void UpdateEditor()
     {
-        var selected = SnippetList.SelectedItem as Snippet;
-        EditorPanel.DataContext = selected;
-        EditorHeader.DataContext = selected;
-        EditorPanel.Visibility = selected != null ? Visibility.Visible : Visibility.Collapsed;
-        EditorPlaceholder.Visibility = selected != null ? Visibility.Collapsed : Visibility.Visible;
-        DuplicateButton.IsEnabled = selected != null;
-        DeleteButton.IsEnabled = selected != null;
-        UpdateKeywordNote();
-        LabelHint.Visibility = selected is { Label.Length: > 0 } ? Visibility.Collapsed : Visibility.Visible;
+        bool selected = SnippetList.SelectedItem is Snippet;
+        EditButton.IsEnabled = selected;
+        DuplicateButton.IsEnabled = selected;
+        DeleteButton.IsEnabled = selected;
     }
 
-    private void KeywordBox_TextChanged(object sender, TextChangedEventArgs e) => UpdateKeywordNote();
-
-    private void LabelBox_TextChanged(object sender, TextChangedEventArgs e) =>
-        LabelHint.Visibility = LabelBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
-
-    /// <summary>キーワード欄の下の注記。重複は警告、空欄は「ピッカー専用」になることを知らせる</summary>
-    private void UpdateKeywordNote()
+    private void Edit_Click(object sender, RoutedEventArgs e)
     {
-        if (EditorPanel.DataContext is not Snippet snippet)
-        {
-            KeywordNote.Visibility = Visibility.Collapsed;
-            return;
-        }
+        if (SnippetList.SelectedItem is Snippet snippet) EditSnippet(snippet, false);
+    }
 
-        var keyword = KeywordBox.Text.Trim();
-        var other = keyword.Length == 0
-            ? null
-            : Store.Items.FirstOrDefault(s => s != snippet && string.Equals(s.Keyword.Trim(), keyword, StringComparison.Ordinal));
+    private void SnippetList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d && FindAncestor<ListBoxItem>(d) != null)
+            Edit_Click(sender, e);
+    }
 
-        if (other != null)
-        {
-            KeywordNote.Text = $"「{other.Title}」と重複しています";
-            KeywordNote.SetResourceReference(TextBlock.ForegroundProperty, "DangerTextBrush");
-            KeywordNote.Visibility = Visibility.Visible;
-        }
-        else if (keyword.Length == 0)
-        {
-            KeywordNote.Text = "空欄だと自動展開されず、ピッカーからのみ使えます";
-            KeywordNote.SetResourceReference(TextBlock.ForegroundProperty, "TextFaint");
-            KeywordNote.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            KeywordNote.Visibility = Visibility.Collapsed;
-        }
+    private void EditSnippet(Snippet snippet, bool isNew)
+    {
+        var dialog = new SnippetEditDialog(Store, snippet, isNew) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        if (isNew) Store.Items.Add(snippet);
+        // 保存後は所属先を表示し、検索条件で編集した行が消えないようにする。
+        FilterBox.Clear();
+        if (!MatchesGroupFilter(snippet) && GroupList.ItemsSource is List<GroupFilterItem> groups)
+            GroupList.SelectedItem = groups.FirstOrDefault(g => g.Group?.Id == snippet.GroupId &&
+                (snippet.GroupId != null || g.IsUngroupedFilter));
+        _view.Refresh();
+        SnippetList.SelectedItem = snippet;
+        SnippetList.ScrollIntoView(snippet);
+        Store.SaveNow();
+        UpdateListChrome();
+        UpdateEditor();
+        FocusSelectedSnippet();
     }
 
     private void New_Click(object sender, RoutedEventArgs e)
     {
         NavSnippets.IsChecked = true;
-        // キーワードは仮の値を入れず空欄のまま渡す(消してから打ち直す手間になるだけなので)
-        var snippet = new Snippet { GroupId = _selectedGroupFilter?.Group?.Id };
-        Store.Items.Add(snippet);
-        FilterBox.Text = "";
-        SnippetList.SelectedItem = snippet;
-        SnippetList.ScrollIntoView(snippet);
-        UpdateListChrome();
-        UpdateStatus();
-        KeywordBox.Focus();
+        EditSnippet(new Snippet { GroupId = _selectedGroupFilter?.Group?.Id }, true);
     }
 
     private void Duplicate_Click(object sender, RoutedEventArgs e)
     {
         if (SnippetList.SelectedItem is not Snippet src) return;
-        // キーワードは重複させられないので複製しない。空欄にして、すぐ打てるようにフォーカスを置く
-        var copy = new Snippet
+        EditSnippet(new Snippet
         {
-            Label = src.Label.Length > 0 ? src.Label + " (コピー)" : "",
+            Label = src.Title + " (コピー)",
             Content = src.Content,
             GroupId = src.GroupId,
-        };
-        Store.Items.Add(copy);
-        SnippetList.SelectedItem = copy;
-        SnippetList.ScrollIntoView(copy);
-        UpdateListChrome();
-        UpdateStatus();
-        KeywordBox.Focus();
+        }, true);
     }
 
     private void Delete_Click(object sender, RoutedEventArgs e)
     {
         if (SnippetList.SelectedItem is not Snippet snippet) return;
         if (!ConfirmDialog.Ask(this, "スニペットの削除",
-                $"「{snippet.DisplayName}」を削除します。\nこの操作は元に戻せません。", "削除する"))
+                $"「{snippet.Title}」を削除します。\nこの操作は元に戻せません。", "削除する"))
             return;
 
         int index = SnippetList.SelectedIndex;
@@ -678,16 +585,6 @@ public partial class MainWindow : Window
         // 一覧で Delete を押したときは、続けて操作できるよう次の行にフォーカスを残す
         if (sender == SnippetList && SnippetList.SelectedItem != null)
             FocusSelectedSnippet();
-    }
-
-    private void InsertVariable_Click(object sender, RoutedEventArgs e)
-    {
-        if (EditorPanel.DataContext is not Snippet || sender is not Button btn || btn.Tag is not string variable)
-            return;
-        int caret = ContentBox.CaretIndex;
-        ContentBox.Text = ContentBox.Text.Insert(caret, variable);
-        ContentBox.CaretIndex = caret + variable.Length;
-        ContentBox.Focus();
     }
 
     // ---- 設定タブ ----
@@ -827,7 +724,6 @@ public partial class MainWindow : Window
         App.Current.ImportFromBeefText(dialog.FileName);
 
         RefreshGroupFilterItems();
-        RefreshGroupComboOptions();
         UpdateListChrome();
         UpdateStatus();
 

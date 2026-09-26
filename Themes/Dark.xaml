@@ -18,7 +18,7 @@
     <!-- ===== 文字 ===== -->
     <SolidColorBrush x:Key="TextMain" Color="#ECECF1"/>
     <SolidColorBrush x:Key="TextSub" Color="#A7A7B4"/>
-    <SolidColorBrush x:Key="TextFaint" Color="#727280"/>
+    <SolidColorBrush x:Key="TextFaint" Color="#A0A0AF"/>
 
     <!-- ===== アクセント(インディゴ / 暗い面用に明度を上げる) ===== -->
     <SolidColorBrush x:Key="AccentBrush" Color="#8584F6"/>
@@ -49,7 +49,7 @@
     <SolidColorBrush x:Key="PickerBg" Color="#1F1F24"/>
     <SolidColorBrush x:Key="PickerBorder" Color="#34343C"/>
     <SolidColorBrush x:Key="PickerText" Color="#ECECF1"/>
-    <SolidColorBrush x:Key="PickerSub" Color="#8E8E9C"/>
+    <SolidColorBrush x:Key="PickerSub" Color="#B0B0BF"/>
     <SolidColorBrush x:Key="PickerSelBg" Color="#2A2A48"/>
     <SolidColorBrush x:Key="PickerHover" Color="#26262C"/>
     <SolidColorBrush x:Key="PickerChipBg" Color="#2A2A31"/>

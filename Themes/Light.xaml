@@ -25,7 +25,7 @@
     <!-- ===== 文字 ===== -->
     <SolidColorBrush x:Key="TextMain" Color="#1B1B22"/>
     <SolidColorBrush x:Key="TextSub" Color="#5D5D6B"/>
-    <SolidColorBrush x:Key="TextFaint" Color="#9494A2"/>
+    <SolidColorBrush x:Key="TextFaint" Color="#686877"/>
 
     <!-- ===== アクセント(インディゴ) ===== -->
     <SolidColorBrush x:Key="AccentBrush" Color="#5856D6"/>
@@ -58,7 +58,7 @@
     <SolidColorBrush x:Key="PickerBg" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="PickerBorder" Color="#E0E0E8"/>
     <SolidColorBrush x:Key="PickerText" Color="#1B1B22"/>
-    <SolidColorBrush x:Key="PickerSub" Color="#7A7A88"/>
+    <SolidColorBrush x:Key="PickerSub" Color="#626272"/>
     <SolidColorBrush x:Key="PickerSelBg" Color="#EAEAFB"/>
     <SolidColorBrush x:Key="PickerHover" Color="#F4F4F7"/>
     <SolidColorBrush x:Key="PickerChipBg" Color="#F0F0F4"/>

@@ -80,7 +80,7 @@ public partial class PickerWindow : Window
     {
         var terms = SnippetMatcher.ParseQuery(SearchBox.Text);
         var groupNames = _store.Groups.ToDictionary(g => g.Id, g => g.Name);
-        string GroupOf(Snippet s) => s.GroupId is Guid id && groupNames.TryGetValue(id, out var n) ? n : "";
+        string GroupOf(Snippet s) => s.GroupId is Guid id && groupNames.TryGetValue(id, out var n) ? n : "未分類";
 
         // 検索語が空なら最近使った順。検索中は一致の強さ順で、同点なら最近使った順
         var results = _store.Items
@@ -107,6 +107,7 @@ public partial class PickerWindow : Window
         var content = (ResultList.SelectedItem as PickerRow)?.Snippet.Content.Trim('\r', '\n');
         PreviewPane.Visibility = string.IsNullOrEmpty(content) ? Visibility.Collapsed : Visibility.Visible;
         PreviewText.Text = content ?? "";
+        PasteButton.IsEnabled = ResultList.SelectedItem is PickerRow;
     }
 
     private void SearchBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
@@ -132,7 +133,7 @@ public partial class PickerWindow : Window
                 e.Handled = true;
                 break;
             case Key.Enter:
-                bool copyOnly = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+                bool copyOnly = Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || CopyButton.IsKeyboardFocused;
                 _ = CommitAsync(copyOnly);
                 e.Handled = true;
                 break;
@@ -148,18 +149,9 @@ public partial class PickerWindow : Window
         ResultList.ScrollIntoView(ResultList.SelectedItem);
     }
 
-    /// <summary>行をクリックしたらそのまま貼り付ける(スクロールバーの操作は除く)</summary>
-    private void ResultList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        var d = e.OriginalSource as DependencyObject;
-        while (d != null && d is not System.Windows.Controls.ListBoxItem)
-            d = VisualTreeHelper.GetParent(d);
-        if (d is System.Windows.Controls.ListBoxItem { DataContext: PickerRow row })
-        {
-            ResultList.SelectedItem = row;
-            _ = CommitAsync(copyOnly: false);
-        }
-    }
+    private async void Paste_Click(object sender, RoutedEventArgs e) => await CommitAsync(copyOnly: false);
+
+    private async void Copy_Click(object sender, RoutedEventArgs e) => await CommitAsync(copyOnly: true);
 
     private async Task CommitAsync(bool copyOnly)
     {
