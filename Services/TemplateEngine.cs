@@ -29,8 +29,11 @@ public static partial class TemplateEngine
             string clip = "";
             try { if (System.Windows.Clipboard.ContainsText()) clip = System.Windows.Clipboard.GetText(); }
             catch { /* クリップボードがロック中なら空文字 */ }
-            text = Regex.Replace(text, @"\{clipboard\}", clip, RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\{clipboard\}", _ => clip, RegexOptions.IgnoreCase);
         }
+
+        // 変数から挿入された改行も含め、カーソル位置を計算する前に統一する。
+        text = text.ReplaceLineEndings("\r\n").Replace("\v", "\r\n");
 
         // {cursor}: 貼り付け後にカーソルを置く位置(最初の1つのみ有効)
         int cursorOffset = -1;

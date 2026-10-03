@@ -37,7 +37,12 @@ public class Snippet : INotifyPropertyChanged
     public string Content
     {
         get => _content;
-        set { if (_content != value) { _content = value; OnPropertyChanged(nameof(Content)); OnPropertyChanged(nameof(Preview)); OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Subtitle)); OnPropertyChanged(nameof(SortKey)); } }
+        set
+        {
+            // 編集・インポート・JSON 読み込みのすべてで本文の改行を統一する。
+            var normalized = value.ReplaceLineEndings("\r\n").Replace("\v", "\r\n");
+            if (_content != normalized) { _content = normalized; OnPropertyChanged(nameof(Content)); OnPropertyChanged(nameof(Preview)); OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Subtitle)); OnPropertyChanged(nameof(SortKey)); }
+        }
     }
 
     /// <summary>キーワードを持つか(空ならリストのキーワード表示を隠す。自動展開の対象外)</summary>

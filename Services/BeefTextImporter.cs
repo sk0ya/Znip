@@ -120,7 +120,8 @@ public static class BeefTextImporter
         // dateTime[:書式] のみ変換。dateTime:シフト:書式 は書式部分に ':' を含むため対象外。
         text = Regex.Replace(text, @"#\{dateTime(?::([^{}:]+))?\}",
             m => m.Groups[1].Success ? $"{{date:{m.Groups[1].Value}}}" : "{date}");
-        return text;
+        // 重複判定にも使うため、Snippet に格納する前に改行を統一する。
+        return text.ReplaceLineEndings("\r\n").Replace("\v", "\r\n");
     }
 
     private static string GetString(JsonElement el, string prop) =>
